@@ -27,24 +27,19 @@ x_d1 = D1(:,I1);
 Plane_grad1 = -c(1) / c(2);
 
 plane_Y_intercept = x_d1(2) - Plane_grad1*x_d1(1);
-plane_X_intercept = -plane_Y_intercept / Plane_grad1;
 
-plane = [0 plane_X_intercept  ; plane_Y_intercept  0];
+
 
 %% Plots
 
 figure
-axis square
 plot(D(1,:),D(2,:),'.')         % plots Largest set of random samples
 
 figure
-axis square
 
 plot(D1(1,:),D1(2,:),'.')         % plots Largest set of random samples
-hold on 
-plot(plane(1,:),plane(2,:),'r')
 
-hold off
+
 
 
 
