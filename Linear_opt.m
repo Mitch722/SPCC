@@ -5,13 +5,15 @@
 %% Gaussian distribution Samples and Subsamples
 % generate a sample of N constraints fromt this m samples will be selected
 
-N = 1000;              % number of global samples
+N = 1000;  % number of global samples
 
-D = randn(2,N);         % generates 2 by N Gaussian distributed number
+P = [0 , 0]';           % defines the mean Point for the Gaussian
+
+D = randn(2,N) + P;         % generates 2 by N Gaussian distributed number with mean at P
 D = abs(D);             % keeps only positive numbers
 
 m = 100;                % subset of samples
-D1 = D(:,1:100);        % first subset 
+D1 = D(:,1:m);        % first subset 
 
 %% Define plane
 
