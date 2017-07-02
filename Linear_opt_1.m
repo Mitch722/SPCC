@@ -36,18 +36,41 @@ plane_X_intercept = -plane_Y_intercept / Plane_grad1;       % find x and y inter
 
 plane = [0 plane_X_intercept  ; plane_Y_intercept  0];      % two points to plot plane
 
+%% Violation Function
+
+% find the number of points that are outside the plane
+
+d = c'*D;           % perpendicular distances of all the points from the full sample N
+
+eta_1 = d(d >= dmax1);      % all values from the greater set that Violate sub-sample
+
+Probab_eta_1 = length(eta_1) / N;           % Probability eta
+One_Minus_eta = 1 - Probab_eta_1;           % violation probability 1 - eta
+
+violate_index_1 = find(d >= dmax1);
+violate_1 = D(:,violate_index_1);
+
+
+
 %% Plots figures necessary
 
 figure
+
+subplot(1,2,1)
 axis square
 plot(D(1,:),D(2,:),'.')         % plots Largest set of random samples
+hold on 
+plot(plane(1,:),plane(2,:),'r')
+hold off
 
-figure
+subplot(1,2,2)
 axis square
 
 plot(D1(1,:),D1(2,:),'.')         % plots Largest set of random samples
 hold on 
 plot(plane(1,:),plane(2,:),'r')
+
+plot(violate_1(1,:),violate_1(2,:),'.')
 
 hold off
 
