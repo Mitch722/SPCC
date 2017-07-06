@@ -50,8 +50,6 @@ Plane_grad1 = -c(1) / c(2);     % finds the gradient of line of the plane
 
 %% Violation: find the probability that 1% of the global violate the subset sample
 
-eta = 0.01;                     % violation factor
-
 num_violate = zeros( num_subset,1 );
 
 % Loop to test each maximum value in order to see how many global points
@@ -79,5 +77,14 @@ end
 violation_factors = num_violate ./ m;
 
 
-if max(violation_factors) > 1;
-    error('too few samples: more points violate the subset than are int')
+if max(violation_factors) > 1
+    error('Too few samples: more points violate the subset than are in the subset. Increase m.')
+end
+
+%% Compare each violation factor in order to work out the probability that violation occurs
+
+
+eta = 0:0.01:1;
+
+for i = 0 
+
