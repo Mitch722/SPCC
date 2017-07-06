@@ -29,14 +29,14 @@ d = c'*D;                           % distances from origin to plane
 
 distances = zeros(m1,m);            % distances from the plane 
 
-max = zeros(m1,1);
-index = zeros(m1,1);
 
 for i = 1 : m1
     
-    distances(i, (1 : m)) = d( (i - 1)*m + 1 : i*m  );
+    distances(i, (1 : m)) = d( (i - 1)*m + 1 : i*m  );      % splits up the distances into 10 rows
     
 end
+
+[max_value,max_Index] = max(distances,[],2);                % finds maximum value and relevent index   
 
 
 Plane_grad1 = -c(1) / c(2);     % finds the gradient of line of the plane
