@@ -84,27 +84,28 @@ end
 %% Compare each violation factor in order to work out the probability that violation occurs
 
 eta = linspace(0,1,m);
-
 num_bigger_eta = zeros(length(eta) ,1);
 
-for i = 1:num_subset
+for i = 1 : length(eta)
     
+    eta_comp = eta(1,i);
     counter = 0;
     
-    violate = violation_factors(i,1);
-    for j = 1 : length(eta)
+    for j = 1 : num_subset
         
-        if violate > eta(1,j)
+        viol_comp = violation_factors(j,1);
+        
+        if viol_comp > eta_comp
+            
             counter = counter + 1;
-        end
+        end 
         num_bigger_eta(i,1) = counter;
+        
     end
+    
 end
-
-probab_Violate = num_bigger_eta ./ N;
 
 one_minus_eta = 1 - eta;
 
-plot(one_minus_eta,probab_Violate,'.')
-
-
+plot(one_minus_eta,)   
+        

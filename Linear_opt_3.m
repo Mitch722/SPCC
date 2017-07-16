@@ -14,7 +14,7 @@ D = randn(2,N) + P;         % generates 2 by N Gaussian distributed number with 
 D = abs(D);             % keeps only positive numbers
 
 
-m = 10000;                         % how many samples in a subset    
+m = 1000;                         % how many samples in a subset    
 
 if m >= N
     error('m is the size of the subset of N: it must be small than N')
@@ -74,7 +74,7 @@ end
 % Need to divide all NUMBER OF TIMES that the condition is VIOLATED  in
 % order to find the violation factor this can be compared to eta
 
-violation_factors = num_violate ./ m;
+violation_factors = num_violate ./ N;
 
 
 if max(violation_factors) > 1
@@ -83,8 +83,31 @@ end
 
 %% Compare each violation factor in order to work out the probability that violation occurs
 
+eta = linspace(0,0.01,m);
+num_bigger_eta = zeros(length(eta) ,1);
 
-eta = 0:0.01:1;
+for i = 1 : length(eta)
+    
+    eta_comp = eta(1,i);
+    counter = 0;
+    
+    for j = 1 : num_subset
+        
+        viol_comp = violation_factors(j,1);
+        
+        if viol_comp > eta_comp
+            
+            counter = counter + 1;
+        end 
+        num_bigger_eta(i,1) = counter;   
+    end
+    
+end
 
-for i = 0 
+one_minus_eta = 1 - eta;
+probab_Violate = num_bigger_eta ./ m;
 
+probab_V = 1 - probab_Violate;
+
+plot(eta,probab_V,'.')   
+        
