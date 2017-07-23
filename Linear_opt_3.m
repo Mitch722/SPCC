@@ -1,7 +1,7 @@
 %% Linear Optimisation with Chance Constraints
 % Moving plane problem
 
-
+tic
 %% Gaussian distribution Samples and Subsamples
 
 % generate a sample of N constraints fromt this m samples will be selected
@@ -83,7 +83,7 @@ end
 
 %% Compare each violation factor in order to work out the probability that violation occurs
 
-eta = linspace(0,0.01,m);
+eta = linspace(0,0.1,m);
 num_bigger_eta = zeros(length(eta) ,1);
 
 for i = 1 : length(eta)
@@ -110,4 +110,6 @@ probab_Violate = num_bigger_eta ./ m;
 probab_V = 1 - probab_Violate;
 
 plot(eta,probab_V,'.')   
-        
+
+grid on
+toc        
