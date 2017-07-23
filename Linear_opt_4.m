@@ -73,7 +73,49 @@ num_big_eta = logic_big_eta'*one_col_2;
 
 probab_Violate = num_big_eta ./ m;
 
-plot(eta,probab_Violate,'.')
+probab_V = 1 - probab_Violate;
+
+%% Theorem 2.4
+
+d = 2;                   % the dimensions of x
+
+i = 0 : d;
+
+Prob_theoryI = 0;
+
+Prob_theo = zeros(1,length(eta));
+
+for j_val = 1 : length(eta)
+
+eta_comp = eta(j_val);
+
+    for i_val = 1 : d + 1
+        
+        ii = i(i_val);
+        
+        Bin = nchoosek(m , ii);
+        
+        intermediate = Bin * eta_comp^(ii) * ( 1 - eta_comp ) ^ (m - ii);
+
+        Prob_theoryI = Prob_theoryI + intermediate;
+    end
+    
+Prob_theo(1,j_val) = Prob_theoryI;
+
+end
+
+
+
+
+%% Plots
+
+plot(eta,probab_V,'.')   
 
 grid on
+
+hold on 
+
+plot(eta,Prob_theo,'r')
+
+
 toc        

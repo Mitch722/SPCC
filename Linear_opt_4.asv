@@ -6,7 +6,7 @@ tic
 
 % generate a sample of N constraints fromt this m samples will be selected
 
-N = 100000;             % number of global samples
+N = 1000000;             % number of global samples
 
 P = [0 , 0]';           % defines the mean Point for the Gaussian
 
@@ -34,14 +34,7 @@ c = [1 1]';                         % the normal that defines the plane
 
 d = c'*D;                           % distances from origin to plane
 
-distances = zeros(num_subset,m);            % distances from the plane 
-
-
-for i = 1 : num_subset
-    
-    distances(i, (1 : m)) = d( (i - 1)*m + 1 : i*m  );      % splits up the distances into 10 rows
-    
-end
+distances = vec2mat(d,m);            % splits the matrix up into subsets with m columns and num_subset rows
 
 [max_value,max_Index] = max(distances,[],2);                % finds maximum value and relevent index   
 
@@ -50,32 +43,14 @@ Plane_grad1 = -c(1) / c(2);     % finds the gradient of line of the plane
 
 %% Violation: find the probability that 1% of the global violate the subset sample
 
-num_violate = zeros( num_subset,1 );
+logic_big_than = max_value < d;
 
-% Loop to test each maximum value in order to see how many global points
-% violate the subset 
-for i = 1 : num_subset
-    
-    counter = 0;
-    
-    maxI = max_value(i,1);
-    length_d = length(d);
-    
-    for j = 1 : length_d
-    
-        if d(1,j) > maxI
-            counter = counter +1;
-        end
-    end
-    num_violate(i,1) = counter;
-    
-end
+one_col = ones(length(logic_big_than),1);
 
-% Need to divide all NUMBER OF TIMES that the condition is VIOLATED  in
-% order to find the violation factor this can be compared to eta
+num_violates = logic_big_than * one_col;
 
-violation_factors = num_violate ./ N;
 
+violation_factors = num_violates ./ N;
 
 if max(violation_factors) > 1
     error('Too few samples: more points violate the subset than are in the subset. Increase m.')
@@ -83,31 +58,20 @@ end
 
 %% Compare each violation factor in order to work out the probability that violation occurs
 
-eta = linspace(0,0.1,m);
-num_bigger_eta = zeros(length(eta) ,1);
+eta = linspace(0,0.1,length(violation_factors));
 
-for i = 1 : length(eta)
-    
-    eta_comp = eta(1,i);
-    counter = 0;
-    
-    for j = 1 : num_subset
-        
-        viol_comp = violation_factors(j,1);
-        
-        if viol_comp > eta_comp
-            
-            counter = counter + 1;
-        end 
-        num_bigger_eta(i,1) = counter;   
-    end
-    
-end
+logic_big_eta = violation_factors > eta;
 
-one_minus_eta = 1 - eta;
-probab_Violate = num_bigger_eta ./ m;
 
-probab_V = 1 - probab_Violate;
+col_len =  size( logic_big_eta );
+col_len = col_len(1);
+
+
+one_col_2 = ones(col_len,1);
+
+num_big_eta = logic_big_eta'*one_col_2;
+
+probab_Violate = num_big_eta ./ m;
 
 %% Theorem 2.4
 
@@ -115,40 +79,29 @@ d = 2;                   % the dimensions of x
 
 i = 0 : d;
 
-Prob_theoryI = 0;
-
-Prob_theo = zeros(1,length(eta));
+Prob_theory = 0;
 
 for j_val = 1 : length(eta)
 
 eta_comp = eta(j_val);
 
-    for i_val = 1 : d + 1
+    for i_val = 0 : d
+
+        Bin = nchoosek(m , i(i_val));
         
         ii = i(i_val);
         
-        Bin = nchoosek(m , ii);
-        
         intermediate = Bin * eta_comp^(ii) * ( 1 - eta_comp ) ^ (m - ii);
 
-        Prob_theoryI = Prob_theoryI + intermediate;
+        Prob_theory = Prob_theory + intermediate;
     end
     
-Prob_theo(1,j_val) = Prob_theoryI;
+    
 
-end
 
-Prob_theo = Prob_theo ./ max(Prob_theo);
+%% Plots 
 
-%% Plots
-
-plot(eta,probab_V,'.')   
+plot(eta,probab_Violate,'.')
 
 grid on
-
-hold on 
-
-plot(eta,Prob_theo,'r')
-
-
 toc        
