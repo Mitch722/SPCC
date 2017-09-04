@@ -1,6 +1,7 @@
 %% Circle to fit round data
 % Put a circle of the smallest radius which touches at least two points of
 % the sample.
+tic
 
 n = 100;
 points =  randn(2,n);
@@ -31,14 +32,14 @@ plot(dist*cos(t) + COM(1,1), dist*sin(t) + COM(2,1),'r')
 points_1 = points;
 points_1(:,index) = [];
 
-dist_sq_1 = ( COM(1,1) - points_1(1,:) ).^2 + ( COM(2,1) - points_1(2,:) ).^2;
-
-[max_dist_sq_1,index_1] = max(dist_sq_1);
-
-% max distance to the next largest point from the COM
-dist_1 = sqrt(max_dist_sq_1);
-
-Q_point = points_1(:,index_1); 
+% dist_sq_1 = ( COM(1,1) - points_1(1,:) ).^2 + ( COM(2,1) - points_1(2,:) ).^2;
+% 
+% [max_dist_sq_1,index_1] = max(dist_sq_1);
+% 
+% % max distance to the next largest point from the COM
+% dist_1 = sqrt(max_dist_sq_1);
+% 
+% Q_point = points_1(:,index_1); 
 
 %% Move the circle along the line towards P until the Distance from the centre are equal
 int_sect = points(:,index);
@@ -62,6 +63,11 @@ for i = 1:100000
     end
 
     new_c = [int_sect(1,1) + x_val ; int_sect(2,1) + y_val ];
+    % Find the next furthest point away from the new centre
+    dist_sq_1 = ( new_c(1,1) - points_1(1,:) ).^2 + ( new_c(2,1) - points_1(2,:) ).^2;
+
+    [max_dist_sq_1,index_1] = max(dist_sq_1);
+    Q_point = points_1(:,index_1);
     
     % Perform the test to see if the point is near the other one
     Q_to_new_c = ( new_c(1,1) - Q_point(1,1) ).^2 + ( new_c(2,1) - Q_point(2,1) ).^2;
@@ -77,4 +83,5 @@ end
 plot(P_to_new_c*cos(t) + new_c(1,1), P_to_new_c*sin(t) + new_c(2,1),'m')
 plot(Q_to_new_c*cos(t) + new_c(1,1), Q_to_new_c*sin(t) + new_c(2,1),'c')
 
+toc
 

@@ -47,21 +47,6 @@ division = ( ( int_sect(2,1) - COM(2,1) ) / (int_sect(1,1) - COM(1,1)) );
 
 ang = atan( division );
 
-factor = 1-0.1;
-new_dist = dist*factor;
-
-x_val = new_dist*cos(ang);
-y_val = new_dist*sin(ang); 
-
-if int_sect(1,1) > COM(1,1)
-    x_val = -x_val;
-    y_val = -y_val;    
-end
-
-new_c = [int_sect(1,1) + x_val ; int_sect(2,1) + y_val ];
-
-plot(new_dist*cos(t) + new_c(1,1), new_dist*sin(t) + new_c(2,1), 'b' )
-
 new_dist = dist;
 
 for i = 1:100000
@@ -77,6 +62,11 @@ for i = 1:100000
     end
 
     new_c = [int_sect(1,1) + x_val ; int_sect(2,1) + y_val ];
+    % Find the next furthest point away from the new centre
+    dist_sq_1 = ( new_c(1,1) - points_1(1,:) ).^2 + ( new_c(2,1) - points_1(2,:) ).^2;
+
+    [max_dist_sq_1,index_1] = max(dist_sq_1);
+
     
     % Perform the test to see if the point is near the other one
     Q_to_new_c = ( new_c(1,1) - Q_point(1,1) ).^2 + ( new_c(2,1) - Q_point(2,1) ).^2;
