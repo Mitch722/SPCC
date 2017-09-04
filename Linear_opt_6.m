@@ -40,10 +40,26 @@ y_val = new_dist*sin(ang);
 
 if int_sect(1,1) > COM(1,1)
     x_val = -x_val;
-    y_val = -y_val;
+    y_val = -y_val;    
 end
 
 new_c = [int_sect(1,1) + x_val ; int_sect(2,1) + y_val ];
 
 plot(new_dist*cos(t) + new_c(1,1), new_dist*sin(t) + new_c(2,1), 'b' )
+
+%% Find the next furthest point from the same center
+
+points_1 = points;
+points_1(:,index) = [];
+
+dist_sq_1 = ( COM(1,1) - points_1(1,:) ).^2 + ( COM(2,1) - points_1(2,:) ).^2;
+
+[max_dist_sq_1,index] = max(dist_sq_1);
+
+% max distance to the next largest point from the COM
+dist_1 = sqrt(max_dist_sq_1);
+
+
+
+
 
