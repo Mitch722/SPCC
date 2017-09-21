@@ -97,13 +97,18 @@ ang2 = atan( division );
 eX = 0.5*b_len*cos(ang2);
 eY = 0.5*b_len*sin(ang2);
 
-if 
+if int_sect < Q_point
+    eX = -eX;
+    eY = -eY;
+    
+    fprintf('Hello, the point gets added. \n')
+end
 
 % Bisector for the two points
 E_point = [ Q_point(1,1) + eX; Q_point(2,1) + eY ];
 
 hold on
-plot(E_point(1,1), E_point(2,1),'X')
+plot(E_point(1,1), E_point(2,1),'O')
 
 %% Check the code for the bisector
 
@@ -111,5 +116,32 @@ bisector_line = [int_sect(1,1), Q_point(1,1) ; int_sect(2,1), Q_point(2,1) ];
 hold on 
 plot(bisector_line(1,:), bisector_line(2,:), 'm')
 
+%% Move the Radius Closer
+
+c_len = find_distance(new_c, E_point);
+c_len_2 = c_len;
+
+division = ( ( new_c(2,1) - E_point(2,1) ) / (new_c(1,1) - E_point(1,1)) );
+
+ang3 = atan(division);
+
+new_c_2 = new_c;
+
+%% New Radius is closer
+
+diff = 0.00001;
+c_len_2 = c_len_2 - diff;
+
+x_val = c_len_2*cos(ang3);
+y_val = new_dist*sin(ang3); 
+
+% if int_sect(1,1) > COM(1,1)
+%     x_val = -x_val;
+%     y_val = -y_val;    
+% end
+
+new_c_2 = new_c_2 + [ x_val ; y_val ];
+
 toc
 
+plot(new_c_2(1,1),new_c_2(2,1),'+')

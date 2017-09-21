@@ -118,5 +118,30 @@ plot(bisector_line(1,:), bisector_line(2,:), 'm')
 
 %% Move the Radius Closer
 
+c_len = find_distance(new_c, E_point);
+c_len_2 = c_len;
+
+division = ( ( new_c(2,1) - E_point(2,1) ) / (new_c(1,1) - E_point(1,1)) );
+
+ang3 = atan(division);
+
+new_c_2 = new_c;
+
+%% New Radius is closer
+
+diff = 0.00001;
+c_len_2 = c_len_2 - diff;
+
+x_val = c_len_2*cos(ang3);
+y_val = c_len_2*sin(ang3); 
+
+% if int_sect(1,1) > COM(1,1)
+%     x_val = -x_val;
+%     y_val = -y_val;    
+% end
+
+new_c_2 = new_c_2 + [ x_val ; y_val ];
+
 toc
 
+plot(new_c_2(1,1),new_c_2(2,1),'+')
