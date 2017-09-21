@@ -1,6 +1,7 @@
 %% Circle to fit round data
 % Put a circle of the smallest radius which touches at least two points of
 % the sample.
+tic
 
 n = 100;
 points =  randn(2,n);
@@ -8,6 +9,8 @@ points =  randn(2,n);
 plot(points(1,:),points(2,:),'.')
 
 total = sum(points,2);
+
+% COM is the centre of mass of the points 
 COM = total ./ length(points);
 
 dist_sq = ( COM(1,1) - points(1,:) ).^2 + ( COM(2,1) - points(2,:) ).^2;
@@ -31,17 +34,12 @@ plot(dist*cos(t) + COM(1,1), dist*sin(t) + COM(2,1),'r')
 points_1 = points;
 points_1(:,index) = [];
 
-dist_sq_1 = ( COM(1,1) - points_1(1,:) ).^2 + ( COM(2,1) - points_1(2,:) ).^2;
-
-[max_dist_sq_1,index_1] = max(dist_sq_1);
-
-% max distance to the next largest point from the COM
-dist_1 = sqrt(max_dist_sq_1);
-
-Q_point = points_1(:,index_1); 
-
 %% Move the circle along the line towards P until the Distance from the centre are equal
+% int_sect is the first point of intersection with the circle. 
+
+% P point %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 int_sect = points(:,index);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 division = ( ( int_sect(2,1) - COM(2,1) ) / (int_sect(1,1) - COM(1,1)) ); 
 
@@ -66,7 +64,10 @@ for i = 1:100000
     dist_sq_1 = ( new_c(1,1) - points_1(1,:) ).^2 + ( new_c(2,1) - points_1(2,:) ).^2;
 
     [max_dist_sq_1,index_1] = max(dist_sq_1);
-
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    Q_point = points_1(:,index_1);
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
     % Perform the test to see if the point is near the other one
     Q_to_new_c = ( new_c(1,1) - Q_point(1,1) ).^2 + ( new_c(2,1) - Q_point(2,1) ).^2;
@@ -77,9 +78,45 @@ for i = 1:100000
     if P_to_new_c <= Q_to_new_c*1.001
         break
     end
+    
 end
 
 plot(P_to_new_c*cos(t) + new_c(1,1), P_to_new_c*sin(t) + new_c(2,1),'m')
 plot(Q_to_new_c*cos(t) + new_c(1,1), Q_to_new_c*sin(t) + new_c(2,1),'c')
 
+plot(new_c(1,1),new_c(2,1),'+')
+
+%% Move Circle towards Bisector of Two points until it hits the third
+
+b_len = find_distance( int_sect, Q_point );
+division = ( ( int_sect(2,1) - Q_point(2,1) ) / (int_sect(1,1) - Q_point(1,1)) ); 
+
+ang2 = atan( division );
+
+% the X value for mid point 
+eX = 0.5*b_len*cos(ang2);
+eY = 0.5*b_len*sin(ang2);
+
+if int_sect < Q_point
+    eX = -eX;
+    eY = -eY;
+    
+    fprintf('Hello, the point gets added. \n')
+end
+
+% Bisector for the two points
+E_point = [ Q_point(1,1) + eX; Q_point(2,1) + eY ];
+
+hold on
+plot(E_point(1,1), E_point(2,1),'O')
+
+%% Check the code for the bisector
+
+bisector_line = [int_sect(1,1), Q_point(1,1) ; int_sect(2,1), Q_point(2,1) ];
+hold on 
+plot(bisector_line(1,:), bisector_line(2,:), 'm')
+
+%% Move the Radius Closer
+
+toc
 

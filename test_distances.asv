@@ -1,0 +1,13 @@
+
+A = [ -1 ; 2; 3 ];
+B = [ 2 ; 1; 4 ];
+
+dist = find_distance(A,B);
+
+c = A';
+d = B';
+
+dist2 = find_distance(c,d);
+
+% a test to see if 
+assert(dist == dist2, 'the two distances are not equal')
