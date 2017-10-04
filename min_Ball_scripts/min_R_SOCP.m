@@ -1,15 +1,27 @@
-function [R, c] = min_R_SOCP(x)
-%Solves minimum radius SOCP problem
+function [R, c] = min_R_SOCP(x, params)
+%Solves minimum radius SOCP problem using Gurobi interior point sovler.
+%This set up as a SOCP with cone constraints.
 %
 % min:   R
 % s.t. || x_i - c ||_2 <= R 
 % input Args:
-%       Arg 1: the distribution that is required to be be placed 
+%       Arg 1: x: the distribution that is required to be be placed 
 %              within a ball 
 %              Samples as rows and dimensions as columns
+%
+%       Arg 2: params: this is a struct containing gurobi
+%              parameters e.g. params.outflag = 0
 %     Returns: 
 %               R = radius of ball
 %               c = centre of ball 
+
+if nargin == 1
+    
+    clear params
+    params.outputflag = 0;
+    params.Timelimit = 60;    
+    
+end
 
 [N_samp, dim_x] = size(x); 
 
@@ -75,12 +87,6 @@ model.ub = (up_bound)*ones(len_X,1);
 model.lb = - model.ub;
 
 gurobi_write(model, 'min_R_SOCP_1.lp');
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-clear params;
-params.outputflag = 0;
-params.Timelimit = 60;    
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
