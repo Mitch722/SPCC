@@ -80,7 +80,11 @@ freq = sum(logic_number, 1);
 figure
 plot(epsilon, freq, '+')
 grid on
+title('Frequency plot of Epsilon')
+ylabel('Frequency of Violation Factor')
+xlabel('Violation Factor')
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 pdf = cumsum(freq,2);
 
 pdf = pdf./max(pdf);
@@ -88,3 +92,6 @@ pdf = pdf./max(pdf);
 figure 
 plot(epsilon, pdf)
 grid on
+title('Cumulative Probability Distribution')
+ylabel('Probability')
+xlabel('Violation Factor')
