@@ -4,7 +4,7 @@
 
 n = 1000;
 % n: no. of samples
-m = 100;
+m = 1;
 % m: number of repeats
 dim_x = 2;
 centres = zeros(m, dim_x);
@@ -13,7 +13,7 @@ for run = 1 : m
     
     x = randn(n, dim_x);
     
-    [R, c] = min_R_SOCP(x);
+    [R, c, no_viol] = min_R_SOCP(x);
     centres(run, :) = c;
        
 end

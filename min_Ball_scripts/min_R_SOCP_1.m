@@ -7,7 +7,7 @@
 n = 1000;
 dim_x = 2;
 % gaussian samples centered around (0,0) n x 2
-x = randn(n, dim_x);
+x = [randn(n, dim_x) ; randn(n, dim_x) + 5*ones(n, 1) ];
 
 % Build the Model for Gurobi
 %
@@ -87,7 +87,7 @@ try
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
     result = gurobi(model, params);
-    
+        
     R = result.x(1);
     c = result.x(1 + (1:dim_x));
     
@@ -105,6 +105,25 @@ try
     plot(x(:,1),x(:,2),'.')
     
     plot(c(1,1),c(1,2),'+')
+    
+    grid on
+    
+    %% Count how many points are violate the above constraint
+
+    centre_points = x - c;
+    centre_points_sq = centre_points.^2;
+    
+    sum_vects = sum(centre_points_sq, 2);
+    
+    R_sqd = R^2;
+    
+    logics = sum_vects > R_sqd*ones(size(sum_vects));
+    
+    one_mat = ones( length( logics ), 1);
+    
+    no_violate = logics' * one_mat;
+    
+    fprintf('The number of points that violate are %d \n', no_violate )
     
 catch gurobiError
     fprintf('Gurobi Error occured\n')

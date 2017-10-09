@@ -1,4 +1,4 @@
-function [R, c] = min_R_SOCP(x, params)
+function [R, c, no_violate] = min_R_SOCP(x, params)
 %Solves minimum radius SOCP problem using Gurobi interior point sovler.
 %This set up as a SOCP with cone constraints.
 %
@@ -7,7 +7,8 @@ function [R, c] = min_R_SOCP(x, params)
 % input Args:
 %       Arg 1: x: the distribution that is required to be be placed 
 %              within a ball 
-%              Samples as rows and dimensions as columns
+%              The number of samples is the same as number of rows
+%              Dimension of the samples is number of columns
 %
 %       Arg 2: params: this is a struct containing gurobi
 %              parameters e.g. params.outflag = 0
@@ -25,6 +26,9 @@ end
 
 [N_samp, dim_x] = size(x); 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+assert(dim_x < N_samp, 'Number of Rows = Number of Samples || Number of Columns = Dimension of Samples')
+    
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % begin with the zeros to delete the scalar R
@@ -99,7 +103,26 @@ c = c';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 fprintf('Finished\n')
-    
+
+%% Count how many points are violate the above constraint
+
+centre_points = x - c;
+centre_points_sq = centre_points.^2;
+
+sum_vects = sum(centre_points_sq, 2);
+
+R_sqd = R^2;
+
+logics = sum_vects > R_sqd;
+
+one_mat = ones( length( logics ), 1);
+
+no_violate = logics' * one_mat;
+
+
+% fprintf('The number of points that violate are %d. \n', no_violate )
+
+
 %% This part is in the Try statement: it plots the Circle and the points of interest
 % t = linspace(0,2*pi);
 % hold on
