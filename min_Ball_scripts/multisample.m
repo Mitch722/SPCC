@@ -95,3 +95,7 @@ grid on
 title('Cumulative Probability Distribution')
 ylabel('Probability')
 xlabel('Violation Factor')
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% theory 
+
