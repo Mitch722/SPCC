@@ -21,14 +21,15 @@ Radii = zeros(x.no_sub_samp, 1);
 centres = zeros(x.no_sub_samp, x.dim);
 no_outside = zeros(x.no_sub_samp, 1);
 
-sub_samp{1, x.no_sub_samp} = [];
+% cell array containing the sub samples
+Output_data{4, x.no_sub_samp} = [];
 
 tic
 % Runs the for loop in parallel
-parfor i = 1 : x.no_sub_samp
+for i = 1 : x.no_sub_samp
     % make a cell array for the subsamples
     sub_samp_mat = x.sample( (1 + (i - 1)*x.n ) : i*x.n , : );
-    sub_samp{1, i} = sub_samp_mat;
+    Output_data{1, i} = sub_samp_mat;
     
     [ Rad, cen, no ] = min_R_SOCP(sub_samp_mat);
     
@@ -36,9 +37,16 @@ parfor i = 1 : x.no_sub_samp
     centres(i, :) = cen;
     no_outside(i, :) = no;
     
+    global_lite = x.sample;
+    global_lite( (1 + (i - 1)*x.n ) : i*x.n , : ) = [];
+    
+    [ no_violate, output_points, viol_fact ] = violation_function( R, c, global_lite );
+    
+    Output_data{2, i} = no_violate;
+    Output_data{3, i} = output_points;
+    Output_data{4, i} = viol_fact;
 end
 toc    
-    
-    
+        
     
     

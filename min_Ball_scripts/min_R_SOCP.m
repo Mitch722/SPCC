@@ -119,9 +119,9 @@ one_mat = ones( length( logics ), 1);
 
 no_violate = logics' * one_mat;
 
-
-% fprintf('The number of points that violate are %d. \n', no_violate )
-
+if nargin > 2
+    fprintf('The number of points that violate are %d. \n', no_violate )
+end
 
 %% This part is in the Try statement: it plots the Circle and the points of interest
 % t = linspace(0,2*pi);
@@ -133,3 +133,4 @@ no_violate = logics' * one_mat;
 % 
 % plot(c(1,1),c(1,2),'+')
 
+end
