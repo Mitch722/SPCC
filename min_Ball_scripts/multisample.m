@@ -89,13 +89,28 @@ pdf = cumsum(freq,2);
 
 pdf = pdf./max(pdf);
 
+x_str = 'Violation Factor, Bin Size =';
+bin_str = num2str(bound);
+x_str = strcat(x_str,{' '}, bin_str);
+
+titlestr = 'Cumulative Probability Distribution, n, M, runs,';
+nstr = num2str(x.n);
+Mstr = num2str(x.M);
+setstr = num2str(x.no_sub_samp);
+
+titlestr = strcat(titlestr,{' '},nstr,{','}, Mstr, {','}, setstr); 
+
 figure 
 plot(epsilon, pdf)
 grid on
-title('Cumulative Probability Distribution')
+title(titlestr)
 ylabel('Probability')
-xlabel('Violation Factor')
+xlabel(x_str)
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% theory 
+%% Save current workspace variables
+
+save('out_put_data.mat','x', 'Output_data','-v7.3')
+
+%% Theoretical Distributions 
+
 
