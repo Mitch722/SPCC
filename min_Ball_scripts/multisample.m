@@ -107,10 +107,22 @@ title(titlestr)
 ylabel('Probability')
 xlabel(x_str)
 
+zeta = [x.dim, x.dim+1];
+
+% Theoretical Distributions 
+% Theoretical distribution for when there are only limiting solutions for x.dim points 
+y_xdim = 1 - binocdf(zeta(1) - 1, x.n, epsilon);
+
+% Theoretical distribution for when there are only limiting solutions for x.dim points 
+
+y_xdim1 = 1 - binocdf(zeta(2) - 1, x.n, epsilon);
+
+hold on 
+plot(epsilon, y_xdim)
+
+plot(epsilon, y_xdim1)
+
 %% Save current workspace variables
 
-save('out_put_data.mat','x', 'Output_data','-v7.3')
-
-%% Theoretical Distributions 
-
+save('out_put_data.mat','x', 'Output_data', 'sub_samples_entry', 'no_violations_entry', 'violation_points_entry', 'violation_factors_entry','-v7.3')
 

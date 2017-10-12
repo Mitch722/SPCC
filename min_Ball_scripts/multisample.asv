@@ -91,14 +91,14 @@ pdf = pdf./max(pdf);
 
 x_str = 'Violation Factor, Bin Size =';
 bin_str = num2str(bound);
-x_str = strcat(x_str, bin_str);
+x_str = strcat(x_str,{' '}, bin_str);
 
 titlestr = 'Cumulative Probability Distribution, n, M, runs,';
 nstr = num2str(x.n);
 Mstr = num2str(x.M);
 setstr = num2str(x.no_sub_samp);
 
-titlestr = strcat(titlestr,{''},nstr,{} Mstr, setstr); 
+titlestr = strcat(titlestr,{' '},nstr,{','}, Mstr, {','}, setstr); 
 
 figure 
 plot(epsilon, pdf)
@@ -107,10 +107,21 @@ title(titlestr)
 ylabel('Probability')
 xlabel(x_str)
 
+zeta = [x.dim, x.dim+1];
+
+% Theoretical Distributions 
+% Theoretical distribution for when there are only limiting solutions for x.dim points 
+y_xdim = 1 - binocdf(zeta(1) - x.dim, x.n, epsilon);
+
+% Theoretical distribution for when there are only limiting solutions for x.dim points 
+y_xdim1 = 1 - binocdf(zeta(2) - x.dim, x.n, epsilon);
+
+hold on 
+plot(epsilon, y_xdim)
+
+plot(epsilon, y_xdim1)
+
 %% Save current workspace variables
 
-save('out_put_data.mat','x', 'Output_data','-v7.3')
-
-%% Theoretical Distributions 
-
+save('out_put_data.mat','x', 'Output_data', 'sub_samples_entry', 'no_violations_entry', 'violation_points_entry', 'violation_factors_entry','-v7.3')
 
