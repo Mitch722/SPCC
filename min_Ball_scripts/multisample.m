@@ -111,18 +111,71 @@ zeta = [x.dim, x.dim+1];
 
 % Theoretical Distributions 
 % Theoretical distribution for when there are only limiting solutions for x.dim points 
-y_xdim = 1 - binocdf(zeta(1) - 1, x.n, epsilon);
+y_xdim0 = 1 - binocdf(zeta(1) - 1, x.n, epsilon);
 
 % Theoretical distribution for when there are only limiting solutions for x.dim points 
 
 y_xdim1 = 1 - binocdf(zeta(2) - 1, x.n, epsilon);
 
 hold on 
-plot(epsilon, y_xdim)
+plot(epsilon, y_xdim0)
 
 plot(epsilon, y_xdim1)
 
+%% Find the frequency and PDF by binning the number of unviolated in the Multisample
+
+% q: the number of unviolated points in x.M the global sample
+unviolData = x.M .* cell2mat(Output_data(violation_factors_entry, :) );
+
+len_arrBound = 1000;
+
+bound = ( max(unviolData) - min(unviolData) ) / len_arrBound;
+
+[freqQ, cumFreqQ, arrBQ, indices] = bin_var(unviolData, bound);
+
+cumQ_norm = cumFreqQ ./ max(cumFreqQ);
+
+arr_norm = arrBQ / x.M;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+hold off
+plot(arr_norm, cumQ_norm)
+grid on
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+strXlab = 'Number of Unviolated Points, bound size: ';
+strBound = num2str(bound);
+strXlab = strcat(strXlab,{' '},strBound);
+
+title('Cumulative Distribution compared with Violation Probability')
+ylabel('Cumulative Probability')
+xlabel(strXlab)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% zeta again
+zeta = [x.dim, x.dim+1];
+% epsilon is 1 - q/x.M
+% q/x.M = epsilon, epsilon = arr_norm
+theo_3 = 1 - binocdf(zeta(1), x.M, 1 - arr_norm);
+theo_4 = 1 - binocdf(3 - 1, x.n, arr_norm);
+
+hold on
+plot(arr_norm, theo_3);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% This bins all the data that is betweent the bound in Q
+output_bin = cell(2, length(arrBQ));
+
+for i = 1 : length(arrBQ)
+    
+    output_bin{1, i} = unviolData( indices(i, :) );
+    output_bin{2, i} = arrBQ(i);
+    
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 %% Save current workspace variables
 
-save('out_put_data.mat','x', 'Output_data', 'sub_samples_entry', 'no_violations_entry', 'violation_points_entry', 'violation_factors_entry','-v7.3')
+save('out_put_data.mat','-v7.3')
 
