@@ -50,7 +50,7 @@ for i = 1 : x.no_sub_samp
     global_lite = x.sample;
     global_lite( (1 + (i - 1)*x.n ) : i*x.n , : ) = [];
     
-    [ no_violate, output_points, viol_fact ] = violation_function( Rad, cen, global_lite );
+    [ no_violate, output_points, viol_fact ] = violation_function( Rad, cen, global_lite, x);
     
     Output_data{no_violations_entry, i} = no_violate;
     Output_data{violation_points_entry, i} = output_points;
@@ -107,7 +107,7 @@ title(titlestr)
 ylabel('Probability')
 xlabel(x_str)
 
-zeta = [x.dim, x.dim+1];
+zeta = [2, x.dim+1];
 
 % Theoretical Distributions 
 % Theoretical distribution for when there are only limiting solutions for x.dim points 
@@ -122,22 +122,47 @@ plot(epsilon, y_xdim0)
 
 plot(epsilon, y_xdim1)
 
-%% Find the frequency and PDF by binning the number of unviolated in the Multisample
+%% Unviolated Points Q 
+% Find the frequency and PDF by binning the number of unviolated in the Multisample
 
 % q: the number of unviolated points in x.M the global sample
-unviolData = x.M .* cell2mat(Output_data(violation_factors_entry, :) );
+Q = x.M .*(1 - cell2mat(Output_data(violation_factors_entry, :) ));
 
+% Length of the array of bins
 len_arrBound = 1000;
 
-bound = ( max(unviolData) - min(unviolData) ) / len_arrBound;
+% bound: the bin size
+bound = ( max(Q) - min(Q) ) / len_arrBound;
 
-[freqQ, cumFreqQ, arrBQ, indices] = bin_var(unviolData, bound);
+% gives the Frequency of Q
+[freqQ, cumFreqQ, arrBQ, indices] = bin_var(Q, bound);
 
 cumQ_norm = cumFreqQ ./ max(cumFreqQ);
 
 arr_norm = arrBQ / x.M;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% plot frequency of q
+figure
+hold off
+plot(arrBQ, freqQ, '.')
+grid on
+
+% poly_freqQ = freqQ;
+% logic_poly = poly_freqQ == 0;
+% poly_freqQ( logic_poly ) = [];
+% 
+% poly_arrBQ( logic_poly ) = [];
+% 
+% coeffsP = polyfit(poly_arrBQ, poly_freqQ, 2);
+% 
+% poly_arrBQ = [ poly_arrBQ .^2; poly_arrBQ ];
+% 
+% hold off
+% figure
+% plot( coeffs'*poly_arrBQ, poly_arrBQ(2,:) )
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+figure
 hold off
 plot(arr_norm, cumQ_norm)
 grid on
@@ -153,7 +178,7 @@ xlabel(strXlab)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % zeta again
-zeta = [x.dim, x.dim+1];
+zeta = [2, x.dim+1];
 % epsilon is 1 - q/x.M
 % q/x.M = epsilon, epsilon = arr_norm
 theo_3 = 1 - binocdf(zeta(1), x.M, 1 - arr_norm);
@@ -161,6 +186,9 @@ theo_4 = 1 - binocdf(3 - 1, x.n, arr_norm);
 
 hold on
 plot(arr_norm, theo_3);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % This bins all the data that is betweent the bound in Q
@@ -168,7 +196,7 @@ output_bin = cell(2, length(arrBQ));
 
 for i = 1 : length(arrBQ)
     
-    output_bin{1, i} = unviolData( indices(i, :) );
+    output_bin{1, i} = Q( indices(i, :) );
     output_bin{2, i} = arrBQ(i);
     
 end

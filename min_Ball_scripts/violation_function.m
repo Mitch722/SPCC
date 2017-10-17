@@ -1,4 +1,4 @@
-function [ no_violate, output_points, viol_fact ] = violation_function( R, c, global_lite )
+function [ no_violate, output_points, viol_fact ] = violation_function( R, c, global_lite, x)
 
 % This function finds the points in the global sample which violate the constraints generated from the sub-sample.
 %
@@ -55,6 +55,6 @@ pont(pont == 0) = [];
 output_points = reshape(pont, [], cols_glob);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-viol_fact = no_violate / rows_glob;
+viol_fact = no_violate / x.M;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 end

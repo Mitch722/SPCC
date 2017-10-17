@@ -2,12 +2,13 @@ function [freq, cumFreq, arrBound, indices_trans] = bin_var(data_in, bound)
 % Find and bin the data and return each part of the data and the indices
 % for these parts
 % Input Args:
-%   Arg 0: freq: the number of point in the bin
-%   Arg 1: cumFreq: the data is required to be sorted
-%   Arg 2: : the bounds that each point must fit between
+%   Arg 0: data_in, the data to be binned
+%   Arg 1: bound, the bin width
 % returns:
-%   data_out: returns the data that fits inbetween 
-
+%   freq: the frequency of the occurance in each bin
+%   cumFreq: the cumulative frequency of each occurance in a particular bin
+%   arrBound: the array containing each bound
+%   indices_trans: the indices of the bound data
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % find the maximum value of the inside data
 maxData = max(data_in);
