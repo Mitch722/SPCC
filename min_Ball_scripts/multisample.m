@@ -181,7 +181,7 @@ xlabel(strXlab)
 zeta = [2, x.dim+1];
 % epsilon is 1 - q/x.M
 % q/x.M = epsilon, epsilon = arr_norm
-theo_3 = 1 - binocdf(zeta(1), x.M, 1 - arr_norm);
+theo_3 = 1 - binocdf(Q - zeta(1), x.M, Q);
 theo_4 = 1 - binocdf(3 - 1, x.n, arr_norm);
 
 hold on
