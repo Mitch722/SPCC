@@ -2,13 +2,13 @@
 % if no previously stored workspace is avaliable then make and save a new
 % one
 
-try load('out_put_data.mat')
+try load('out_put_data_1.mat')
 
 catch 
     disp('No output from previous run')
     
-    multisample
-    save('out_put_data.mat')
+    multisample_1
+    
 end
 
 %% Unviolated Points Q 
@@ -18,7 +18,7 @@ end
 Q = x.M .*(1 - cell2mat(Output_data(violation_factors_entry, :) ));
 
 % Length of the array of bins
-len_arrBound = 1000;
+len_arrBound = 50;
 
 % bound: the bin size
 bound = ( max(Q) - min(Q) ) / len_arrBound;
@@ -36,16 +36,16 @@ arr_norm = arrBQ / x.M;
 % plot frequency of q
 figure
 hold off
-plot(arrBQ, freqQ, '.')
+plot(arrBQ, freqQ/max(freqQ), '.')
 grid on
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 figure
 hold off
-plot(arr_norm, cumQ_norm)
+plot(arrBQ, cumQ_norm)
 grid on
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% String Manipulation for plots
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%String Manipulation for plots
 strXlab = 'Number of Unviolated Points, bound size: ';
 strBound = num2str(bound);
 strXlab = strcat(strXlab,{' '},strBound);
@@ -66,26 +66,100 @@ for i = 1 : length(arrBQ)
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Work out Theoretical plots
+%% Work out Theoretical plots || Try Theorem 4:
 % zeta again
 zeta = [2, x.dim+1];
 % epsilon is 1 - q/x.M
 % q/x.M = epsilon, epsilon = arr_norm
 
-% Try Theorem 4:
+% r parameter
+r = 14;
 
-n = x.M - zeta(1);
-b_c = 1 / (n+1);
+n = x.M - r;
 
-beta_coef = zeros(size(arrBQ));
+Theo36 = zeros(size(arrBQ));
+
+zed = zeta(1);
 for i = 1: length(arrBQ)
     
-    k = arrBQ(i) - zeta(2);
-    beta_coef(i) = b_c / beta(n - k + 1, k+1);
+    k = arrBQ(i) - r;
+    beta_coefln =  betaln(n - k + 1, k+1);
+    beta_coefln = log(1 / (n+1)) - beta_coefln  ;
+    
+    a = x.M - arrBQ(i) + zed;
+    b = arrBQ(i) - zed + 1;
+    
+    c = zed;
+    d = r - zed + 1;
+    
+    if d < 0
+        d = 1;
+    end
+    
+    bulk = betaln(a,b) - betaln(c,d);
+    assert(bulk <= eps, 'bulk less than or equal to eps')
+    
+    Theo36_inter = beta_coefln + bulk;
+    Theo36(i) = exp(Theo36_inter);
+    
 end
 
-
+figure
+plot( arrBQ, Theo36./max(Theo36) ,'r')
+grid on
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+logic_freqQ = freqQ == 0;
+% compress freqQ_comp making it sparse
+freqQ_comp = freqQ;
+freqQ_comp(logic_freqQ) = [];
+% 
+arrBQ_comp = arrBQ;
+% compress arrBQ to make it sparse
+arrBQ_comp(logic_freqQ) = [];
 
+n = 3;
+coeffs = polyfit(arrBQ_comp, freqQ_comp, n);
+
+freqQ_poly = [arrBQ.^3; arrBQ.^2 ; arrBQ; ones( size (arrBQ ) )];
+freqQ_poly = coeffs * freqQ_poly;
+
+hold on
+plot(arrBQ, freqQ_poly/max(freqQ_poly),'b')
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+r = 3;
+
+n = x.M - r;
+
+Theo37 = zeros(size(arrBQ));
+
+zed = zeta(2);
+for i = 1: length(arrBQ)
+    
+    k = arrBQ(i) - r;
+    beta_coefln =  betaln(n - k + 1, k+1);
+    beta_coefln = log(1 / (n+1)) - beta_coefln  ;
+    
+    a = x.M - arrBQ(i) + zed;
+    b = arrBQ(i) - zed + 1;
+    
+    c = zed;
+    d = r - zed + 1;
+    
+    if d < 0
+        d = 1;
+    end
+    
+    bulk = betaln(a,b) - betaln(c,d);
+    assert(bulk <= eps, 'bulk less than or equal to eps')
+    
+    Theo37_inter = beta_coefln + bulk;
+    Theo37(i) = exp(Theo36_inter);
+    
+end
+
+hold on
+plot( arrBQ, Theo37./max(Theo37) ,'r')
 
