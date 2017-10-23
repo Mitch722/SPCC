@@ -131,7 +131,7 @@ Theo36 = zeros(size(arrBQ));
 zed = zeta(1);
 for i = 1: length(arrBQ)
     
-    % r =  arrBQ(i);
+    r =  arrBQ(i);
     
     k = arrBQ(i) - r;
     beta_coefln =  betaln(n - k + 1, k+1);
@@ -170,7 +170,7 @@ Theo37 = zeros(size(arrBQ));
 zed = zeta(2);
 for i = 1: length(arrBQ)
     
-    % r = arrBQ(i);
+    r = arrBQ(i);
     
     n = x.M - r;
     

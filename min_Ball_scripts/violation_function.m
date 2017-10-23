@@ -20,7 +20,7 @@ function [ no_violate, output_points, viol_fact ] = violation_function( R, c, gl
 %
 %            3. viol_fact, epsilon the proportion of points that have violated the model.
 
-[rows_glob, cols_glob] = size(global_lite);
+[~, cols_glob] = size(global_lite);
 
 
 % global points minus fromt the centre

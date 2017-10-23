@@ -29,15 +29,3 @@ freq = sum(logDiff, 1);
 
 cumFreq = cumsum(freq, 2);
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% output_bin = cell(2, length(arrBound));
-% 
-% for i = 1 : length(arrBound)
-%     
-%     output_bin{1, i} = data_in( indices_trans(i, :) );
-%     output_bin{2, i} = arrBound(i);
-%     
-% end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

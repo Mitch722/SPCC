@@ -9,6 +9,9 @@ catch
     multisample_2
     
 end
+
+fprintf('The multisample contains %d and each subset is %d \n', x.M, x.n )
+
 % Output data entries:
 % sub_samples_entry = 1;       sub samples are stored here 
 % no_violations_entry = 2;     the number that violate model 
@@ -16,6 +19,7 @@ end
 % violation_factors_entry = 4; epsilon values
 %% Generate Q
 zeta = [2, x.dim+1];
+
 % Q the number of points which violate
 Q = x.M .*(1 - cell2mat(Output_data(violation_factors_entry, :) ));
 % Length of the array of bins
