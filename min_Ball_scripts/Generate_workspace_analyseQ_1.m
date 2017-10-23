@@ -46,7 +46,7 @@ hold off
 plot(arrBQ, cumQ_norm)
 grid on
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%String Manipulation for plots
+%% String Manipulation for plots
 strXlab = 'Number of Unviolated Points, bound size: ';
 strBound = num2str(bound);
 strXlab = strcat(strXlab,{' '},strBound);
@@ -55,34 +55,6 @@ title('Cumulative Distribution compared with Violation Probability')
 ylabel('Cumulative Probability')
 xlabel(strXlab)
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Work out the a polynomial fit for the Cumulative plot
-% n = 3;
-% concA = x.M:bound:2000;
-% arrBQ1 = [arrBQ, concA];
-% cumQ_poly = [cumQ_norm, ones(size(concA))];
-% 
-% coef_CF = polyfit(arrBQ1, cumQ_poly, n);
-% 
-% arrQ = [arrBQ.^3 ; arrBQ.^2 ; arrBQ ; ones( size(arrBQ) )];
-% 
-% cumFreq_poly = coef_CF * arrQ;
-% 
-% hold on
-% plot(arrBQ, cumFreq_poly)
-% 
-% %% Derivatives of Cumulative Plot: pdf
-% 
-% coef_PF = [coef_CF(1)*3, coef_CF(2)*2, coef_CF(3)];
-% 
-% arrQF = [arrBQ.^2 ; arrBQ ; ones( size(arrBQ) )];
-% 
-% cdfQ = coef_PF * arrQF;
-% areaCDF = sum(cdfQ, 2);
-% 
-% figure 
-% plot(arrBQ, cdfQ/max(cdfQ))
-% grid on
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Laplacian to find PDF from CDF
 % first smooth with Gaussian
@@ -109,9 +81,20 @@ arrBQ2 = arrBQ2 + diff(arrBQ)/2;
 
 areapdf = sum( smooth_cdf, 2 ) * bound;
 
-plot(arrBQ2/x.M, pdf./areapdf)
+plot(arrBQ2/x.M, pdf./max(pdf),'.')
 grid on
 hold on
+%% Fit a polynomial to the diff data
+n = 2;
+
+norm_arrBQ2 = arrBQ2/x.M;
+norm_pdf = pdf./areapdf;
+coef_pdf = polyfit(norm_arrBQ2, norm_pdf, n);
+
+poly_pdf = coef_pdf * [ norm_arrBQ2.^2; norm_arrBQ2; ones(size(norm_arrBQ2)) ];
+
+% plot(norm_arrBQ2, poly_pdf, 'b')
+
 %% This bins all the data that is betweent the bound in Q
 output_bin = cell(2, length(arrBQ));
 
@@ -161,13 +144,13 @@ for i = 1: length(arrBQ)
     
 end
 
-hold on
-plot( arrBQ/x.M, Theo36./areapdf ,'r')
+figure
+plot( arrBQ/x.M, Theo36,'r')
 grid on
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%
-r = 3;
+%
+% r = 25;
 
 n = x.M - r;
 
@@ -194,10 +177,46 @@ for i = 1: length(arrBQ)
     assert(bulk <= eps, 'bulk less than or equal to eps')
     
     Theo37_inter = beta_coefln + bulk;
-    Theo37(i) = exp(Theo36_inter);
+    Theo37(i) = exp(Theo37_inter);
     
 end
 
 hold on
-% plot( arrBQ, Theo37./max(Theo37) ,'r')
+plot( arrBQ/x.M, Theo37, 'm')
+grid on
+%% Plots
+
+
+
+
+
+
+%% Work out the a polynomial fit for the Cumulative plot
+% n = 3;
+% concA = x.M:bound:2000;
+% arrBQ1 = [arrBQ, concA];
+% cumQ_poly = [cumQ_norm, ones(size(concA))];
+% 
+% coef_CF = polyfit(arrBQ1, cumQ_poly, n);
+% 
+% arrQ = [arrBQ.^3 ; arrBQ.^2 ; arrBQ ; ones( size(arrBQ) )];
+% 
+% cumFreq_poly = coef_CF * arrQ;
+% 
+% hold on
+% plot(arrBQ, cumFreq_poly)
+% 
+% %% Derivatives of Cumulative Plot: pdf
+% 
+% coef_PF = [coef_CF(1)*3, coef_CF(2)*2, coef_CF(3)];
+% 
+% arrQF = [arrBQ.^2 ; arrBQ ; ones( size(arrBQ) )];
+% 
+% cdfQ = coef_PF * arrQF;
+% areaCDF = sum(cdfQ, 2);
+% 
+% figure 
+% plot(arrBQ, cdfQ/max(cdfQ))
+% grid on
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
