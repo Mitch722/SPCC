@@ -2,7 +2,7 @@
 
 try load('simple_alg_0.mat')
     
-catch 
+catch  
     multisample_3
     
 end
@@ -17,6 +17,8 @@ data = x.sample;
 data(1:r,:) = [];
 
 radii = zeros(1, length(data));
+
+hold off
 
 for i = 1 : length(data)
     fprintf('%d\n',i)
@@ -92,7 +94,7 @@ axis equal
 
 figure 
 
-plot(x.sample(:,1), x.sample(:,2),'+')
+plot(x.sample(:,1), x.sample(:,2),'.')
 hold on
 plot(R*cos(t) + c(1,1), R*sin(t) + c(1,2), 'b')
 

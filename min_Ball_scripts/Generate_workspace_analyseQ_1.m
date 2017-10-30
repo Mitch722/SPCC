@@ -122,23 +122,23 @@ zeta = [2, x.dim+1];
 % q/x.M = epsilon, epsilon = arr_norm
 
 % r parameter
-r = 14;
+r = x.n;
 
 n = x.M - r;
 
-Theo36 = zeros(size(arrBQ));
+Theo36 = zeros(size(arrBQ2));
 
 zed = zeta(1);
-for i = 1: length(arrBQ)
+for i = 1: length(arrBQ2)
     
     % r =  arrBQ(i);
     
-    k = arrBQ(i) - r;
+    k = arrBQ2(i) - r;
     beta_coefln =  betaln(n - k + 1, k+1);
     beta_coefln = log(1 / (n+1)) - beta_coefln  ;
     
-    a = x.M - arrBQ(i) + zed;
-    b = arrBQ(i) - zed + 1;
+    a = x.M - arrBQ2(i) + zed;
+    b = arrBQ2(i) - zed + 1;
     
     c = zed;
     d = r - zed + 1;
@@ -156,8 +156,9 @@ for i = 1: length(arrBQ)
 end
 
 figure
-plot( arrBQ/x.M, Theo36,'r')
+plot( arrBQ2/x.M, Theo36,'r')
 grid on
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -165,21 +166,21 @@ grid on
 
 
 
-Theo37 = zeros(size(arrBQ));
+Theo37 = zeros(size(arrBQ2));
 
 zed = zeta(2);
-for i = 1: length(arrBQ)
+for i = 1: length(arrBQ2)
     
     % r = arrBQ(i);
     
     n = x.M - r;
     
-    k = arrBQ(i) - r;
+    k = arrBQ2(i) - r;
     beta_coefln =  betaln(n - k + 1, k+1);
     beta_coefln = log(1 / (n+1)) - beta_coefln  ;
     
-    a = x.M - arrBQ(i) + zed;
-    b = arrBQ(i) - zed + 1;
+    a = x.M - arrBQ2(i) + zed;
+    b = arrBQ2(i) - zed + 1;
     
     c = zed;
     d = r - zed + 1;
@@ -197,8 +198,22 @@ for i = 1: length(arrBQ)
 end
 
 hold on
-plot( arrBQ/x.M, Theo37, 'm')
+plot( arrBQ2/x.M, Theo37, 'm')
 grid on
+
+hold on
+plot(arrBQ2/x.M, pdf./max(pdf) * max(Theo37))
+grid on
+
+hold off
+
+tit_str = 'Pdf of Q with r =';
+str_r = num2str(r);
+tit_str = strcat(tit_str, str_r);
+
+title(tit_str)
+xlabel('Q/M')
+ylabel('Probability')
 %% Plots
 
 
