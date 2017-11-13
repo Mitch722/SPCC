@@ -90,7 +90,7 @@ sys_obv = ss(Aobv,Bobv,Cobv,Dobv,Ts,'statename',states,'inputname',input,'output
     
 % Step Input and Plot
 
-t = 0 : Ts : 20;
+t = 0 : Ts : 20-Ts;
 unitstep = t>=0;
 r1 = 0.2*ones(size(t));
 
@@ -118,27 +118,49 @@ hold on
 plot(t, y(2,:),'m')
 
 grid on
-%% take the ouput y and and do 
 
-y_x = y(1, :);
-y_phi = y(2, :);
 
-y_x(end) = [];
-y_phi(end) = [];
-t
+%% Find error on y
 
-y_out.x = reshape(y_x, t(end), []);
-y_out.phi = reshape(y_x, t(end), []);
-y_out.t = reshape(t ,t(end), []);
+e = x(5:8, :);
+y_hat = Ck*(x(1:4, :) - e);
+ey = y - y_hat;
 
+figure
+plot(t, ey(1,:),'.')
+hold on
+plot(t, ey(2,:),'.')
+grid on
+
+%% Analyse noise on y
+
+smp = 116;
+
+ey_smp = ey(:, 1: smp);
 n = 1;
+t_smp = t(1, 1: smp);
 
-coefsX = zeros(n+1, length(y_out.x(1)) );
-coefsPhi = zeros(n+1, length(y_out.x(1)) );
+coef_x = polyfit(t_smp, ey_smp(1,:), 1);
+coef_phi = polyfit(t_smp, ey_smp(2,:), 1);
+%
 
-for i = 1 : length(y_out.x)
-    
-    coefsX(i, :) = polyfit(y_out.x(i), n);
-    coefsPhi(i, :) = polyfit(y_out.phi(i), n);
-    
-end
+ey_smp_max = (ey_smp - [ coef_x(2); coef_phi(2) ]).^2;
+ey_smp_max_x = max(ey_smp_max(1,:));
+ey_smp_max_phi = max(ey_smp_max(2,:)); 
+
+ey_smp_max_x = sqrt(ey_smp_max_x);
+ey_smp_max_phi = sqrt(ey_smp_max_phi);
+
+hold on 
+plot(t, ey_smp_max_x*ones(size(t)),'-');
+hold on
+plot(t, -ey_smp_max_x*ones(size(t)),'-');
+
+% Violation Probab
+
+viol = ey(1,:).^2 > ey_smp_max_x^2;
+
+viol = sum(viol, 2) ./length(ey);
+one_minus = 1 - viol;
+
+fprintf('1 - epsilon = %d \n', one_minus)
