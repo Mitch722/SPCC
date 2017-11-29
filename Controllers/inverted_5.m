@@ -132,7 +132,7 @@ hold on
 plot(t, ey(2,:),'.')
 grid on
 
-%% Analyse noise on y
+%% Analyse noise on y and find delta i
 
 smp = 116;
 
@@ -148,8 +148,11 @@ ey_smp_max = (ey_smp - [ coef_x(2); coef_phi(2) ]).^2;
 ey_smp_max_x = max(ey_smp_max(1,:));
 ey_smp_max_phi = max(ey_smp_max(2,:)); 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% delta i is here:
 ey_smp_max_x = sqrt(ey_smp_max_x);
 ey_smp_max_phi = sqrt(ey_smp_max_phi);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 hold on 
 plot(t, ey_smp_max_x*ones(size(t)),'-');
@@ -164,3 +167,16 @@ viol = sum(viol, 2) ./length(ey);
 one_minus = 1 - viol;
 
 fprintf('1 - epsilon = %d \n', one_minus)
+
+%% Work out Ci
+
+ABG = Aobv * x - Bobv*r1;
+% remove the last as it is xk
+ABG(end) = [];
+% xCi is the xk+1 values 
+xCi = x;
+% remove first element
+xCi(1) = [];
+
+Ci = xCi - ABG;
+

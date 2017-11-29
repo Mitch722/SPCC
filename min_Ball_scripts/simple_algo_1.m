@@ -94,6 +94,8 @@ grid on
 axis equal
 
 %% new figure
+
+
 plot(x.sample(:,1), x.sample(:,2),'+')
 hold on
 plot(R*cos(t) + c(1,1), R*sin(t) + c(1,2), 'k')

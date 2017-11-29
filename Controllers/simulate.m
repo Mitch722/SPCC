@@ -31,11 +31,7 @@ end
 % noise = [zeros(model_states, length(t)); noise];
 
 for i = 1: length(t)
-    
-%     noise_term = F*v(i);
-%     intermediate = noise_term - L*w(:,i);
-%     noise_term = [noise_term; intermediate];
-        
+            
     x(:,i+1) = A*x(:,i) + B*u(:,i) + v(:, i);
     y(:,i) = C*x(:,i) + w(:, i);
     
