@@ -39,9 +39,13 @@ bounds = [bounds; bounds];
 
 Y = [1; 1];
 X = randn(8, 1) + 1;
-X = 0.1*X;
+X(2) = 0.1*X(2);
+
+X = C*X;
+% X = 0;
 
 [ck, status] = optimal_input(A, B, C, X, Y, K_opt, R, p, bounds);
+fprintf('Status = %d \n', status)
 
 %% Function for working out constrained MPC optimal input
 function [ck, status] = optimal_input(A, B, C, X, Y, K_opt, R, p, bounds)
@@ -98,6 +102,8 @@ As = [As; -As];
 % Make A negative
 As = -As;
 
+Ac = As(:, (no_states+1):end);
+
 % Construct -Ax <= -b, the -b part:
 for i = 1: length(As)/length(bounds)
     bounds = [bounds; bounds];
@@ -120,11 +126,11 @@ end
 
 H(N*qy +1: end, N*qx +1 : end) = P_bar;
 
-[L, ~] = chol(H,'lower');
+[L, ~] = lu(H);
 Linv = inv(L);
 
 iA0 = false(size(b));
-iA0(1:2, :) = [true; true];
+% iA0(1:2, :) = [true; true];
 
 opt = mpcqpsolverOptions;
 opt.IntegrityChecks = false;
@@ -138,8 +144,5 @@ Y = [Y; zeros(length(Aeq) - length(Y),1)];
 
 % Find ck
 
-[ck, status, ~] = mpcqpsolver(Linv, X, As, b, [], zeros(0, 1), iA0, opt);
+[ck, status, ~] = mpcqpsolver(Linv, X, Ac, b, [], zeros(0, 1), iA0, opt);
 end
-
-
-

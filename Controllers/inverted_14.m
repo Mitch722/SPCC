@@ -32,19 +32,66 @@ R = 1;
 % z(k|k) = [x(k|k) ck]'
 % z(k+i|k) = psi^i * z(k|k)
 
-p = 5;
-R = 0.01;
-bounds = [5, 0.1, 10]';
+p = 15;
+R = 1;
+bounds = [2, 0.1, 5]';
 bounds = [bounds; bounds];
 
 Y = [1; 1];
 X = randn(8, 1) + 1;
-X = 0.1*X;
+X(2) = 0.1*X(2);
 
-[ck, status] = optimal_input(A, B, C, X, Y, K_opt, R, p, bounds);
+X = C*X;
+% X = 0;
+%%
+Time_out = 40;
+x = zeros(no_states, Time_out/Ts);
+y = zeros(no_outputs, Time_out/Ts);
+
+x2 = x;
+y2 = y;
+
+Ck = zeros(1, Time_out/Ts);
+
+for k = 1: (Time_out/Ts)-1 
+    
+    Y = y(:, k);
+    [ck, status] = optimal_input(A, B, C, Y, K_opt, R, p, bounds);
+    
+    c = ck(1);
+    
+    if c^2 >= 100^2
+        c = 0;
+    end
+    
+    w =  0.01*randn(no_states, 1);
+    v =  0.01*randn(no_outputs, 1);
+    
+    x(:, k+1) = A*x(:, k) + B*c + w;
+    y(:, k) = C*x(:, k) + v;
+    
+    x2(:, k+1) = A*x2(:, k) + w;
+    y2(:, k) = C*x2(:, k) + v;
+    
+    
+    Ck(k) = c;
+end
+
+fprintf('Status = %d \n', status)
+%%
+figure
+plot(y(1, :))
+hold on
+plot(y(2, :));
+hold on
+plot(Ck)
+plot(y2(1, :))
+hold on
+plot(y2(2, :));
+
 
 %% Function for working out constrained MPC optimal input
-function [ck, status] = optimal_input(A, B, C, X, Y, K_opt, R, p, bounds)
+function [ck, status] = optimal_input(A, B, C, Y, K_opt, R, p, bounds)
 
 % A is A + B*K_opt
 phi = A;
@@ -94,9 +141,13 @@ for i = 1 : p-1
     % A( (i)*ax + 1 : (i + 1)*ax, :) = F*psi^i; 
 end
 % repeat A
+Ac = As(:, (no_states+1):end);
+
 As = [As; -As];
+Ac = [Ac; Ac];
 % Make A negative
 As = -As;
+Ac = -Ac;
 
 % Construct -Ax <= -b, the -b part:
 for i = 1: length(As)/length(bounds)
@@ -106,25 +157,30 @@ end
 b = -1*bounds;
 
 % find Linv, the cholsky of P_bar:
-N = p+1;
-H = zeros((N+1)*length(Q_bar));
+% N = p+1;
+% H = zeros((N+1)*length(Q_bar));
+% 
+% [qx, qy] = size(Q_bar);
+% 
+% 
+% %% initialise H
+% H(1:qy, 1:qx) = Q_bar;
+% for i = 1: N-1
+%     psi_trans = psi';
+%     H(i*qy + 1 : (i+1)*qy, i*qx + 1:(i+1)*qx) = (psi_trans^i)*Q_bar*psi^i;
+% end
+% 
+% H(N*qy +1: end, N*qx +1 : end) = P_bar;
 
-[qx, qy] = size(Q_bar);
+%% Destroy H:
 
-%% initialise H
-H(1:qy, 1:qx) = Q_bar;
-for i = 1: N-1
-    psi_trans = psi';
-    H(i*qy + 1 : (i+1)*qy, i*qx + 1:(i+1)*qx) = (psi_trans^i)*Q_bar*psi^i;
-end
+H = R*eye(p);
 
-H(N*qy +1: end, N*qx +1 : end) = P_bar;
-
-[L, ~] = chol(H,'lower');
+[L, ~] = lu(H);
 Linv = inv(L);
 
 iA0 = false(size(b));
-iA0(1:2, :) = [true; true];
+% iA0(1:2, :) = [true; true];
 
 opt = mpcqpsolverOptions;
 opt.IntegrityChecks = false;
@@ -134,12 +190,10 @@ opt.IntegrityChecks = false;
 Aeq = [C, zeros(len_output, p)];
 Aeq = [Aeq; zeros(1, (no_states+p))];
 % Pad y
-Y = [Y; zeros(length(Aeq) - length(Y),1)];
+% Y = [Y; zeros(length(Aeq) - length(Y),1)];
 
 % Find ck
 
-[ck, status, ~] = mpcqpsolver(Linv, X, As, b, [], zeros(0, 1), iA0, opt);
+
+[ck, status, ~] = mpcqpsolver(Linv, 0, As, b, Aeq, Y, iA0, opt);
 end
-
-
-
