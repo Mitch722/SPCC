@@ -32,10 +32,12 @@ R = 1;
 % z(k|k) = [x(k|k) ck]'
 % z(k+i|k) = psi^i * z(k|k)
 
+% horizon window length
 p = 15;
 R = 1;
-bounds = [1, 0.1, 5]';
-bounds = [bounds; bounds];
+% bounds on 
+main_bounds = [1, 0.1]';
+% bounds = [bounds; bounds];
 
 Y = [1; 1];
 X = randn(8, 1) + 1;
@@ -52,23 +54,24 @@ x2 = x;
 y2 = y;
 
 Ck = zeros(1, Time_out/Ts);
+Y = Y(:, 1);
 
 for k = 1: (Time_out/Ts)-1 
     
-    Y = y(:, k);
+    
+    bounds = main_bounds - (Y.^2).^(0.5);
+    
     [ck, status] = optimal_input(A, B, C, Y, K_opt, R, p, bounds);
     
     c = ck(1);
-    
-%     if c^2 >= 100^2
-%         c = 0;
-%     end
     
     w =  0.1*randn(no_states, 1);
     v =  0.01*randn(no_outputs, 1);
     
     x(:, k+1) = A*x(:, k) + B*c + w;
     y(:, k) = C*x(:, k) + v;
+    
+    Y = y(:, k);
     
     x2(:, k+1) = A*x2(:, k) + w;
     y2(:, k) = C*x2(:, k) + v;
@@ -151,13 +154,14 @@ As = -As;
 Ac = -Ac;
 
 % Construct -Ax <= -b, the -b part:
-for i = 1: length(As)/length(bounds)
-    bounds = [bounds; bounds];
+bounds2 = bounds;
+for i = 1: length(As)/length(bounds) -1
+    bounds2 = [bounds2; bounds];
 end
     
-b = -1*bounds;
+b = -1*bounds2;
 
-% find Linv, the cholsky of P_bar:
+%% find Linv, the cholsky of P_bar:
 % N = p+1;
 % H = zeros((N+1)*length(Q_bar));
 % 
@@ -172,7 +176,7 @@ b = -1*bounds;
 % end
 % 
 % H(N*qy +1: end, N*qx +1 : end) = P_bar;
-
+% 
 %% Destroy H:
 
 H = R*eye(p);
@@ -189,12 +193,12 @@ opt.IntegrityChecks = false;
 %% Use equality constraints to feed in current position
 
 Aeq = [C, zeros(len_output, p)];
-Aeq = [Aeq; zeros(1, (no_states+p))];
+%Aeq = [Aeq; zeros(1, (no_states+p))];
 % Pad y
 % Y = [Y; zeros(length(Aeq) - length(Y),1)];
 
 % Find ck
 
 
-[ck, status, ~] = mpcqpsolver(Linv, 0, As, b, Aeq, Y, iA0, opt);
+[ck, status, ~] = mpcqpsolver(Linv, 0, Ac, b, [], zeros(0, 1), iA0, opt);
 end

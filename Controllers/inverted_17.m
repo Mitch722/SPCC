@@ -1,4 +1,6 @@
 %% Initialise physical model and parameters for controller
+% This script is implements the correct Lyapunov hessian weight P_bar
+% This script works with P = 10
 
 [sys_obv, L, K_opt] = inverted_pen;
 
@@ -11,58 +13,56 @@ Ts = sys_obv.Ts;
 [~, no_states] = size(A);
 [no_outputs, ~] = size(D);
 
-t = 0: Ts: 20;
-
-% Preallocate data
-x = zeros( no_states, length(t)+1 );
-y = zeros( no_outputs, length(t)+1 );
-
-x_max = [2; 0.3166; 5; 0.644];
-x_min = -x_max;
-
-u_over_bar = 10;
-u_under_bar = -10;
-
-% should put some weighting in here
-Q = C'*C;
-R = 1;
 
 %% Find MPC optimal
 
 % z(k|k) = [x(k|k) ck]'
 % z(k+i|k) = psi^i * z(k|k)
 
-p = 15;
+% horizon window length
+p = 10;
+
+Q = C'*C;
 R = 1;
-bounds = [5, 0.1, 10]';
-bounds = [bounds; bounds];
+% bounds on 
+main_bounds = [2, 5]';
+% bounds = [bounds; bounds];
 
-Y = [1; 1];
-X = randn(8, 1) + 1;
-X(2) = 0.1*X(2);
-
-X = C*X;
-% X = 0;
 %%
-Time_out = 30;
+Time_out = 10;
 x = zeros(no_states, Time_out/Ts);
 y = zeros(no_outputs, Time_out/Ts);
 
+x2 = x;
+y2 = y;
+
 Ck = zeros(1, Time_out/Ts);
+status = Ck;
+X = x(:, 1);
 
 for k = 1: (Time_out/Ts)-1 
     
-    X = x(:, k);
-    [ck, status] = optimal_input(A, B, C, X, K_opt, R, p, bounds);
+    
+    bounds = main_bounds;
+    
+    [ck, status(k)] = optimal_input(A, B, C, X, K_opt, R, p, bounds);
     
     c = ck(1);
-    
-    if c^2 >= 100^2
+    if status(k) < 0
         c = 0;
     end
     
-    x(:, k+1) = A*x(:, k) + B*c + 0.1*randn(no_states, 1);
-    y(:, k) = C*x(:, k) + 0.1*randn(no_outputs, 1);
+    w =  0.01*randn(no_states, 1);
+    v =  0.01*randn(no_outputs, 1);
+    
+    x(:, k+1) = A*x(:, k) + B*c + w;
+    y(:, k) = C*x(:, k) + v;
+    
+    X = x(:, k);
+    
+    x2(:, k+1) = A*x2(:, k) + w;
+    y2(:, k) = C*x2(:, k) + v;
+    
     
     Ck(k) = c;
 end
@@ -73,10 +73,18 @@ figure
 plot(y(1, :))
 hold on
 plot(y(2, :));
-hold off
-figure
-plot(Ck, '.')
+hold on
 
+plot(y2(1, :))
+hold on
+plot(y2(2, :));
+
+grid on
+
+figure
+stairs(Ck)
+
+grid on
 %% Function for working out constrained MPC optimal input
 function [ck, status] = optimal_input(A, B, C, X, K_opt, R, p, bounds)
 
@@ -118,7 +126,6 @@ P_bar = dlyap(psi', Q_bar);
 % Construct -As x <= b, the -As part:
 
 % [ax, ay] = size(F);
-%% As = zeros(ax*p, ay):
 
 % initialise As
 As = F;
@@ -127,59 +134,41 @@ for i = 1 : p-1
     As = [As ; F*psi^i];
     % A( (i)*ax + 1 : (i + 1)*ax, :) = F*psi^i; 
 end
-% repeat A
+% split As into Ac and Ax
 Ac = As(:, (no_states+1):end);
+Ax = As(:, 1: no_states);
 
+% repeat A
 As = [As; -As];
-Ac = [Ac; Ac];
+Ac = [Ac; -Ac];
+Ax = [Ax; -Ax];
 % Make A negative
 As = -As;
 Ac = -Ac;
 
-% Construct -Ax <= -b, the -b part:
-for i = 1: length(As)/length(bounds)
-    bounds = [bounds; bounds];
+%% Construct -Ax <= -b, the -b part:
+
+bounds2 = bounds;
+for i = 1: length(As)/length(bounds) -1
+    bounds2 = [bounds2; bounds];
 end
     
-b = -1*bounds;
+b = -1*bounds2 + Ax*X;
+%% Find H = Pcc from P_bar 
+% Takes bottom right hand corner of P_bar this is the hessian
+H = P_bar(no_states+1 : end, no_states+1 : end);
 
-% find Linv, the cholsky of P_bar:
-% N = p+1;
-% H = zeros((N+1)*length(Q_bar));
-% 
-% [qx, qy] = size(Q_bar);
-% 
-% 
-% %% initialise H
-% H(1:qy, 1:qx) = Q_bar;
-% for i = 1: N-1
-%     psi_trans = psi';
-%     H(i*qy + 1 : (i+1)*qy, i*qx + 1:(i+1)*qx) = (psi_trans^i)*Q_bar*psi^i;
-% end
-% 
-% H(N*qy +1: end, N*qx +1 : end) = P_bar;
+[L, pos] = chol(H, 'lower');
+assert(pos==0, 'H is not positive definite')
 
-%% Destroy H:
-
-H = R*eye(p);
-
-[L, ~] = lu(H);
 Linv = inv(L);
 
 iA0 = false(size(b));
-% iA0(1:2, :) = [true; true];
 
 opt = mpcqpsolverOptions;
 opt.IntegrityChecks = false;
 
 %% Use equality constraints to feed in current position
 
-Aeq = [C, zeros(len_output, p)];
-Aeq = [Aeq; zeros(1, (no_states+p))];
-% Pad y
-% Y = [Y; zeros(length(Aeq) - length(Y),1)];
-
-% Find ck
-
-[ck, status, ~] = mpcqpsolver(Linv, X, As, b, [], zeros(0, 1), iA0, opt);
+[ck, status, ~] = mpcqpsolver(Linv, 0, Ac, b, [], zeros(0, 1), iA0, opt);
 end

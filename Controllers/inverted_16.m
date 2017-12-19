@@ -1,4 +1,6 @@
 %% Initialise physical model and parameters for controller
+% Using QuadProg instead of mpcqpsolver
+
 
 [sys_obv, L, K_opt] = inverted_pen;
 
@@ -32,10 +34,12 @@ R = 1;
 % z(k|k) = [x(k|k) ck]'
 % z(k+i|k) = psi^i * z(k|k)
 
+% horizon window length
 p = 15;
 R = 1;
-bounds = [1, 0.1, 5]';
-bounds = [bounds; bounds];
+% bounds on 
+bounds = [1, 0.1]';
+% bounds = [bounds; bounds];
 
 Y = [1; 1];
 X = randn(8, 1) + 1;
@@ -151,31 +155,32 @@ As = -As;
 Ac = -Ac;
 
 % Construct -Ax <= -b, the -b part:
-for i = 1: length(As)/length(bounds)
-    bounds = [bounds; bounds];
+bounds2 = bounds;
+for i = 1: length(As)/length(bounds) -1
+    bounds2 = [bounds2; bounds];
 end
     
-b = -1*bounds;
+b = -1*bounds2;
 
-% find Linv, the cholsky of P_bar:
-% N = p+1;
-% H = zeros((N+1)*length(Q_bar));
-% 
-% [qx, qy] = size(Q_bar);
-% 
-% 
-% %% initialise H
-% H(1:qy, 1:qx) = Q_bar;
-% for i = 1: N-1
-%     psi_trans = psi';
-%     H(i*qy + 1 : (i+1)*qy, i*qx + 1:(i+1)*qx) = (psi_trans^i)*Q_bar*psi^i;
-% end
-% 
-% H(N*qy +1: end, N*qx +1 : end) = P_bar;
+%% find Linv, the cholsky of P_bar:
+N = p+1;
+H = zeros((N+1)*length(Q_bar));
+
+[qx, qy] = size(Q_bar);
+
+
+%% initialise H
+H(1:qy, 1:qx) = Q_bar;
+for i = 1: N-1
+    psi_trans = psi';
+    H(i*qy + 1 : (i+1)*qy, i*qx + 1:(i+1)*qx) = (psi_trans^i)*Q_bar*psi^i;
+end
+
+H(N*qy +1: end, N*qx +1 : end) = P_bar;
 
 %% Destroy H:
 
-H = R*eye(p);
+% H = R*eye(p);
 
 [L, ~] = lu(H);
 Linv = inv(L);
@@ -189,12 +194,13 @@ opt.IntegrityChecks = false;
 %% Use equality constraints to feed in current position
 
 Aeq = [C, zeros(len_output, p)];
-Aeq = [Aeq; zeros(1, (no_states+p))];
+%Aeq = [Aeq; zeros(1, (no_states+p))];
 % Pad y
 % Y = [Y; zeros(length(Aeq) - length(Y),1)];
 
 % Find ck
 
+% quadprog((H,f,A,b,Aeq,beq,lb,ub,x0,options)
+ck = quadprog(H,zeros(length(As), 1),As,b,[],[],[],[]);
 
-[ck, status, ~] = mpcqpsolver(Linv, 0, As, b, Aeq, Y, iA0, opt);
 end
