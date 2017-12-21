@@ -24,7 +24,7 @@ p = 10;
 Q = C'*C;
 R = 1;
 % bounds on 
-main_bounds = [2, 5]';
+main_bounds = [1, 1]';
 % bounds = [bounds; bounds];
 
 %%
@@ -44,7 +44,7 @@ for k = 1: (Time_out/Ts)-1
     
     bounds = main_bounds;
     
-    [ck, status(k)] = optimal_input(A, B, C, X, K_opt, R, p, bounds);
+    [ck, status(k)] = optimal_input_mpc_qp(A, B, C, X, K_opt, R, p, bounds);
     
     c = ck(1);
     if status(k) < 0
@@ -66,15 +66,18 @@ for k = 1: (Time_out/Ts)-1
     Ck(k) = c;
 end
 
-fprintf('Status = %d \n', status)
 %%
 figure
 plot(y(1, :))
 hold on
-plot(y(2, :));
-hold on
+plot(y2(1, :));
+grid on
+plot([0, Time_out/Ts], [main_bounds(1), main_bounds(1)], 'k')
+plot([0, Time_out/Ts], [-main_bounds(1), -main_bounds(1)], 'k')
 
-plot(y2(1, :))
+
+figure
+plot(y(2, :))
 hold on
 plot(y2(2, :));
 
@@ -84,8 +87,9 @@ figure
 stairs(Ck)
 
 grid on
+
 %% Function for working out constrained MPC optimal input
-function [ck, status] = optimal_input(A, B, C, X, K_opt, R, p, bounds)
+function [ck, status] = optimal_input_mpc_qp(A, B, C, X, K_opt, R, p, bounds)
 
 % A is A + B*K_opt
 phi = A;

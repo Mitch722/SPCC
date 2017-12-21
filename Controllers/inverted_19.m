@@ -1,5 +1,6 @@
 %% Initialise physical model and parameters for controller
 % This script is implements the correct Lyapunov hessian weight P_bar
+% Uses quadprog instead of mpcqpsolver
 
 [sys_obv, L, K_opt] = inverted_pen;
 
@@ -24,7 +25,7 @@ p = 10;
 Q = C'*C;
 R = 1;
 % bounds on 
-main_bounds = [2, 5]';
+main_bounds = [1, 1]';
 % bounds = [bounds; bounds];
 
 %%
@@ -36,22 +37,24 @@ x2 = x;
 y2 = y;
 
 Ck = zeros(1, Time_out/Ts);
-status = Ck;
+
 X = x(:, 1);
+maxF = 50;
 
 for k = 1: (Time_out/Ts)-1 
     
-    
     bounds = main_bounds;
     
-    [ck, status(k)] = optimal_input(A, B, C, X, K_opt, R, p, bounds);
+    ck = optimal_input(A, B, C, X, K_opt, R, p, bounds, maxF);
     
-    c = ck(1);
-    if status(k) < 0
+    if isempty(ck)
         c = 0;
+    else
+    c = ck(1);
     end
-    
+       
     w =  0.01*randn(no_states, 1);
+    w(2) = w(2)*0.1;
     v =  0.01*randn(no_outputs, 1);
     
     x(:, k+1) = A*x(:, k) + B*c + w;
@@ -66,7 +69,6 @@ for k = 1: (Time_out/Ts)-1
     Ck(k) = c;
 end
 
-fprintf('Status = %d \n', status)
 %%
 figure
 plot(y(1, :))
@@ -85,7 +87,7 @@ stairs(Ck)
 
 grid on
 %% Function for working out constrained MPC optimal input
-function [ck, status] = optimal_input(A, B, C, X, K_opt, R, p, bounds)
+function ck = optimal_input(A, B, C, X, K_opt, R, p, bounds, maxF)
 
 % A is A + B*K_opt
 phi = A;
@@ -157,17 +159,13 @@ b = -1*bounds2 + Ax*X;
 % Takes bottom right hand corner of P_bar this is the hessian
 H = P_bar(no_states+1 : end, no_states+1 : end);
 
-[L, pos] = chol(H, 'lower');
-assert(pos==0, 'H is not positive definite')
-
-Linv = inv(L);
-
-iA0 = false(size(b));
-
-opt = mpcqpsolverOptions;
-opt.IntegrityChecks = false;
+options = optimoptions('quadprog');
+options.ConstraintTolerance = 1e-8;
 
 %% Use equality constraints to feed in current position
+% f is a vector of zeros
+f = zeros(1, p)';
 
-[ck, status, ~] = mpcqpsolver(Linv, 0, Ac, b, [], zeros(0, 1), iA0, opt);
+% x = quadprog(H,f,A,b,Aeq,beq,lb,ub,x0,options)
+ck = quadprog(H, f, -Ac, -b, [], [], -maxF*ones(p, 1), maxF*ones(p, 1),[], options);
 end
