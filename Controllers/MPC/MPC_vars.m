@@ -1,4 +1,4 @@
-function [H, f, Ac, b, lb, ub, options] = MPC_vars(A, B, C, X, K_opt, R, p, bnds, maxF)
+function [H, f, Ac, Ax, b, lb, ub, options] = MPC_vars(A, B, C, K_opt, R, p, bnds, maxF)
 % This function makes variables for quadprog function for MPC 
 
 
@@ -68,7 +68,7 @@ for i = 1: length(As)/length(bnds) -1
     bounds2 = [bounds2; bnds];
 end
     
-b = -1*bounds2 + Ax*X;
+b = -1*bounds2;
 %% Find H = Pcc from P_bar 
 % Takes bottom right hand corner of P_bar this is the hessian
 H = P_bar(no_states+1 : end, no_states+1 : end);
@@ -80,10 +80,8 @@ options.ConstraintTolerance = 1e-8;
 % f is a vector of zeros
 f = zeros(1, p)';
 
-Ac = -Ac;
-b = -b;
 lb = -maxF*ones(p, 1);
 ub = maxF*ones(p, 1);
-% x = quadprog(H,f,A,b,Aeq,beq,lb,ub,x0,options)
+% x = quadprog(H,f,-A,-b,Aeq,beq,lb,ub,x0,options)
 
 end

@@ -1,6 +1,7 @@
 %% Initialise physical model and parameters for controller
 % This script is implements the correct Lyapunov hessian weight P_bar
 % Uses quadprog instead of mpcqpsolver
+% separates MPC hessians from quadprog
 
 [sys_obv, L, K_opt] = inverted_pen;
 
@@ -41,9 +42,12 @@ Ck = zeros(1, Time_out/Ts);
 X = x(:, 1);
 maxF = 100;
 
+[H, f, Ac, Ax, b1, lb, ub, options] = MPC_vars(A, B, C, K_opt, R, p, main_bounds, maxF);
+
 for k = 1: (Time_out/Ts)-1 
     
-    ck = optimal_input(A, B, C, X, K_opt, R, p, main_bounds, maxF);
+    b = b1 + Ax*X;
+    ck = quadprog(H, f, -Ac, -b, [], [], lb, ub, [], options);
     
     if isempty(ck)
         c = 0;
