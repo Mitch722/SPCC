@@ -1,6 +1,6 @@
 %% test 
 
-M = 1000;
+M = 100;
 
 x = struct;
 x.sample = randn(1, M);
@@ -9,8 +9,6 @@ x.sample = randn(1, M);
 
 %%
 figure
-plot(x.sample,'.')
+plot(x.sample)
 hold on
 plot([1, M], [x_hat(2, 1), x_hat(2, 1)])
-hold on
-plot([1, M], [-x_hat(2, 1), -x_hat(2, 1)])
