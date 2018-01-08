@@ -3,6 +3,7 @@
 % Uses quadprog instead of mpcqpsolver
 % separates MPC hessians from quadprog
 % updated inverted_pen to reduce gain for observer 
+% added Algo 1 for cart position
 
 [sys_obv, L, K_opt] = inverted_pen;
 
@@ -28,7 +29,7 @@ Q = C'*C;
 R = 1;
 % bounds on 
 % main_bounds = [x, phi, u]
-main_bounds = [1, 0.15, 1]';
+main_bounds = [1, 0.2, 1]';
 % bounds = [bounds; bounds];
 
 %% 
@@ -115,9 +116,9 @@ grid on
 stairs(main_bounds(1) - b1_inter, 'k')
 stairs(-main_bounds(1) + b1_inter, 'k')
 
-plot(y(2, :))
+plot(y(2, :), 'b')
 hold on
-plot(y2(2, :));
+plot(y2(2, :), 'r');
 
 figure
 plot(y(2, :))
