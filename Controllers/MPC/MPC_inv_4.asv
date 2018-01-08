@@ -22,12 +22,12 @@ Ts = sys_obv.Ts;
 % z(k+i|k) = psi^i * z(k|k)
 
 % horizon window length
-p = 2;
+p = 5;
 
 Q = C'*C;
 R = 1;
 % bounds on 
-main_bounds = [1, 1]';
+main_bounds = [1, 0.2, 1]';
 % bounds = [bounds; bounds];
 
 %% 
@@ -72,7 +72,7 @@ for k = 1: (Time_out/Ts)-1
         
     end
     
-    b = b1 + b1_inter(k) + Ax*X;
+    b = b1 + b1_inter(k)*ones(size(b1)) + Ax*X;
     
     ck = quadprog(H, f, -Ac, -b, [], [], lb, ub, [], options);
     
@@ -109,8 +109,9 @@ plot(y(1, :))
 hold on
 plot(y2(1, :));
 grid on
-stairs(b1_inter, 'k')
-plot(-b1_inter, 'k')
+
+stairs(main_bounds(1) - b1_inter, 'k')
+stairs(-main_bounds(1) + b1_inter, 'k')
 
 plot(y(2, :))
 hold on
