@@ -21,7 +21,7 @@ Ts = sys_obv.Ts;
 % z(k+i|k) = psi^i * z(k|k)
 
 % horizon window length
-p = 10;
+p = 2;
 
 Q = C'*C;
 R = 1;
@@ -56,11 +56,10 @@ for k = 1: (Time_out/Ts)-1
     end
     
     varW = 0.01;
-    varV = 0.01;
-    varR = 0.01;
+    varV = 0.001;
     
     w =  varW*randn(no_states, 1);
-    w(3) = varR*rand(1,1) - 0.5*varR;
+    w(3) = w(3)*0.1 + varV*rand(1, 1) - 0.5*varV;
     
     v =  varV*rand(no_outputs, 1);
     v(2) = v(2)*0.1; 

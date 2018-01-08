@@ -54,11 +54,11 @@ polesCA = eig(sysc_lqr.A);
 
 %% Discrete Observer Implementation
 % make observer poles 10x faster than LQR poles
-multiple = 1;
+multiple = 0.1;
 
 % Put poles near orgin of unit circle in z-domain
 poles_lqr = [0.0001, 0.001, 0.002, 0.0002]';
-obvs_poles = multiple * real(poles_lqr);
+obvs_poles = multiple * real(poles_A);
 
 % make sure poles are negative
 if obvs_poles > 0

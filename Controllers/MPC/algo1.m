@@ -17,13 +17,12 @@ zeta = [2, x.dim + 1];
 
 % Find q underbar and overbar
 % Ppst
-
-ep_hat = ep_lo + 0.5*ep_del;
-
 % Ppst = binocdf(qhat, x.M, 1 - ep_hat);
 % inputted value
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+x.M = length(x.sample);
 
 q = 1 : x.M;
 
@@ -71,7 +70,7 @@ sumQ = sum(RQ, 2);
 [~, index] = max(sumQ);
 r_star = r(index);
 
-fprintf('r* = %d \n', r_star)
+% fprintf('r* = %d \n', r_star)
 
 %% P trial
 
