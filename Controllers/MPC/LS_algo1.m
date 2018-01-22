@@ -1,7 +1,7 @@
 %% Optimisation step
 % least squares a go
 
-function [epsilon, confidence] = Least_Squares_opt(x, len_sub)
+function [epsilon, confidence] = LS_algo1(x, len_sub)
 
 % 1. Take the innovation data stored as a struct in x.
 % 2. Least Squares model it. Producing an upper bound.
@@ -23,41 +23,37 @@ n = 1;
 % phi_dist = max_dist;
 
 % 
-x_opt = x.sample(:, end - len_sub + 1: end);
+x_opt.sample = x.sample(:, end - len_sub + 1: end);
+x_opt.dim = x.dim;
 
-coef = polyfit(t, x_opt, n); 
+%% 
+ep_lo = 0.05;
+ep_hi = 0.10;
 
-c = [coef(1, 1), 1]';
+Ppor = 0.9;
+Ppst = 0.95;
 
-% Take last sub-samples worth
-x_opt = x_opt - coef(1, 2);
+%%
 
-x_opt = [t; x_opt];
+[~, ~, Ntrail, q_min, q_max] = algo1(x_opt, ep_lo, ep_hi, Ppor, Ppst);
 
-phi = atan(c(1));
-% rotation matrix
-% R = [c -s; c  s];
-% phi = 0;
-R = [cos(phi), -sin(phi);    
-    sin(phi),   cos(phi)];
+[x_hat, ~] = algo1_return(x_opt, Ntrail, q_min, q_max);
 
-x_R = R * x_opt;
-
-phi_dist = phi;
-max_dist = max(x_R(2, :));
+max_dist = x_hat(2);
 
 %% Compare Model to x.sample and work out violation probability
 
+% remove samples used to train model
 x.sample(:, end - len_sub: end) = [];
 
-violations = x.sample.^2 <= max_dist^2;
+violations = x.sample.^2 >= max_dist^2;
 
-q_eps = sum(violations, 2);
-epsilon = 1 -  sum(violations, 2) / length(x.sample);
+epsilon = sum(violations, 2) / length(x.sample);
+q_eps = (1 - epsilon)*length(x.sample);
 
 %% Work out if epsilon fits within the 95% interval 
 % Posterior distribution
 
 % eps_k = 1 - q_hat / (length(x.sample) + len_sub);
-confidence = binocdf(q_eps - 2, length(x.sample)+len_sub, 1 - epsilon);
+confidence = binocdf(q_eps - 2, length(x.sample), 1 - epsilon);
 

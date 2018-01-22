@@ -7,6 +7,7 @@
 % Run Algo 1 on the cart angle
 % variable Variance after k = 1000;
 % finite size on algo 1 data
+% Add in model for sample rejection
 
 [sys_obv, L, K_opt] = inverted_pen;
 
@@ -26,13 +27,13 @@ Ts = sys_obv.Ts;
 % z(k+i|k) = psi^i * z(k|k)
 
 % horizon window length
-p = 2;
+p = 5;
 
 Q = C'*C;
 R = 1;
 % bounds on 
 % main_bounds = [x, phi, u]
-main_bounds = [0.8, 0.15, 0.5]';
+main_bounds = [0.8, 0.2, 1]';
 % bounds = [bounds; bounds];
 
 %% 
@@ -63,7 +64,7 @@ b2_inter = zeros(1, Time_out/Ts);
 for k = 1: (Time_out/Ts)-1 
     
     % Run algo 1 to update bounds
-    no_algo_1 = 200;
+    no_algo_1 = 100;
     
     if k > no_algo_1
         
@@ -106,7 +107,7 @@ for k = 1: (Time_out/Ts)-1
     c = ck(1);
     end
     
-    if k > 500 && k < 1200
+    if k > Time_out/Ts - 400
         varW = 0.01;
         varV = 0.01;
     
@@ -143,10 +144,6 @@ grid on
 stairs(main_bounds(1) - b1_inter, 'k')
 stairs(-main_bounds(1) + b1_inter, 'k')
 
-% plot(y(2, :), 'b')
-% hold on
-% plot(y2(2, :), 'r');
-
 title('Cart Position MPC vs LQR')
 
 
@@ -166,10 +163,3 @@ stairs(Ck)
 
 grid on
 title('Reference Input MPC')
-
-figure
-u = [K_opt, zeros(size(K_opt))] * x + Ck;
-stairs(u)
-
-grid on
-title('Input u')

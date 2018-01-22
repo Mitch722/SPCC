@@ -7,6 +7,7 @@
 % Run Algo 1 on the cart angle
 % variable Variance after k = 1000;
 % finite size on algo 1 data
+% gather confidences of algo 1 on both x and phi
 
 [sys_obv, L, K_opt] = inverted_pen;
 
@@ -32,7 +33,7 @@ Q = C'*C;
 R = 1;
 % bounds on 
 % main_bounds = [x, phi, u]
-main_bounds = [0.8, 0.15, 0.5]';
+main_bounds = [0.8, 0.15, 0.4]';
 % bounds = [bounds; bounds];
 
 %% 
@@ -60,6 +61,10 @@ maxF = 100;
 b1_inter = zeros(1, Time_out/Ts);
 b2_inter = zeros(1, Time_out/Ts);
 
+% preallocate the confidence of algorithm1
+confid = b1_inter;
+confid2 = confid;
+
 for k = 1: (Time_out/Ts)-1 
     
     % Run algo 1 to update bounds
@@ -78,6 +83,9 @@ for k = 1: (Time_out/Ts)-1
         [x_hat, q_hat] = algo1_return(ey, Ntrail, q_min, q_max);
         
         b1_inter(k) = x_hat(2, 1);
+        % find the confidence of algorithm 1
+        m = length(ey.sample);
+        confid(k) = binocdf(q_hat - 1, m, 1 - (q_hat/m));
         
         % Run Algo1 on the angle phi
         ephi = struct;
@@ -89,6 +97,9 @@ for k = 1: (Time_out/Ts)-1
         [x_hat2, q_hat2] = algo1_return(ephi, Ntrail2, q_min2, q_max2);
         
         b2_inter(k) = x_hat2(2, 1);
+        % find confidence of algorithm2
+        m = length(ephi.sample);
+        confid2(k) = binocdf(q_hat2 - 1, m, 1 - (q_hat2/m));
         
     end
     
@@ -166,10 +177,3 @@ stairs(Ck)
 
 grid on
 title('Reference Input MPC')
-
-figure
-u = [K_opt, zeros(size(K_opt))] * x + Ck;
-stairs(u)
-
-grid on
-title('Input u')

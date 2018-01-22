@@ -107,7 +107,7 @@ for k = 1: (Time_out/Ts)-1
     c = ck(1);
     end
     
-    if k > 500 && k < 1200
+    if k > Time_out/Ts - 400
         varW = 0.01;
         varV = 0.01;
     

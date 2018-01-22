@@ -6,7 +6,7 @@
 % added Algo 1 for cart position
 % Run Algo 1 on the cart angle
 % variable Variance after k = 1000;
-% finite size on algo 1 data
+% gather confidences of algo 1 on both x and phi
 
 [sys_obv, L, K_opt] = inverted_pen;
 
@@ -43,7 +43,7 @@ Ppor = 0.9;
 Ppst = 0.95;
 
 %%
-Time_out = 30;
+Time_out = 20;
 x = zeros(no_states, Time_out/Ts);
 y = zeros(no_outputs, Time_out/Ts);
 
@@ -60,10 +60,13 @@ maxF = 100;
 b1_inter = zeros(1, Time_out/Ts);
 b2_inter = zeros(1, Time_out/Ts);
 
+confid = b1_inter;
+confid2 = confid;
+
 for k = 1: (Time_out/Ts)-1 
     
     % Run algo 1 to update bounds
-    if k >= 500
+    if k >= 200
         
         % Run algo1 on the cart position
         ey = struct;
@@ -76,6 +79,9 @@ for k = 1: (Time_out/Ts)-1
         [x_hat, q_hat] = algo1_return(ey, Ntrail, q_min, q_max);
         
         b1_inter(k) = x_hat(2, 1);
+        % find confidence of algo 1 on cart pos.
+        m = length(ey.sample);
+        confid(k) = binocdf(q_hat - 1, m, 1 - (q_hat/m));
         
         % Run Algo1 on the angle phi
         ephi = struct;
@@ -87,6 +93,9 @@ for k = 1: (Time_out/Ts)-1
         [x_hat2, q_hat2] = algo1_return(ephi, Ntrail2, q_min2, q_max2);
         
         b2_inter(k) = x_hat2(2, 1);
+        % find confidence of algo 1 on phi
+        m = length(ephi.sample);
+        confid2(k) = binocdf(q_hat2 - 1, m, 1 - (q_hat2/m));
         
     end
     
@@ -104,7 +113,7 @@ for k = 1: (Time_out/Ts)-1
     c = ck(1);
     end
     
-    if k > 1000 && k < 1800
+    if k > 500 && k < 1300
         varW = 0.01;
         varV = 0.01;
     
@@ -141,10 +150,6 @@ grid on
 stairs(main_bounds(1) - b1_inter, 'k')
 stairs(-main_bounds(1) + b1_inter, 'k')
 
-plot(y(2, :), 'b')
-hold on
-plot(y2(2, :), 'r');
-
 title('Cart Position MPC vs LQR')
 
 
@@ -164,3 +169,12 @@ stairs(Ck)
 
 grid on
 title('Reference Input MPC')
+
+
+%% Plot confidences of controller as 
+
+figure
+plot(confid)
+
+figure 
+plot(confid2)
