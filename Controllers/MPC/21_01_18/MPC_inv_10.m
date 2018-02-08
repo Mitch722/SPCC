@@ -8,6 +8,8 @@
 % variable Variance after k = 1000;
 % finite size on algo 1 data
 % gather confidences of algo 1 on both x and phi
+% Replace quadprog with mpcqpsolver
+
 tic
 [sys_obv, L, K_opt] = inverted_pen;
 
@@ -43,7 +45,7 @@ ep_hi = 0.10;
 Ppor = 0.9;
 Ppst = 0.95;
 
-%%
+%% prepare MPC 
 Time_out = 20;
 x = zeros(no_states, Time_out/Ts);
 y = zeros(no_outputs, Time_out/Ts);
@@ -56,7 +58,13 @@ Ck = zeros(1, Time_out/Ts);
 X = x(:, 1);
 maxF = 100;
 
-[H, f, Ac, Ax, b1, lb, ub, options] = MPC_vars(A, B, C, K_opt, R, p, main_bounds, maxF);
+[H, f, Ac, Ax, b1, lb, ub, opt] = MPC_vars(A, B, C, K_opt, R, p, main_bounds, maxF);
+% cholesky for mpcqpsolver
+[L2, ~] = chol(H,'lower');
+Linv = inv(L2);
+
+% options for mpcqpsolver:
+options = mpcqpsolverOptions;
 
 b1_inter = zeros(1, Time_out/Ts);
 b2_inter = zeros(1, Time_out/Ts);
@@ -109,7 +117,9 @@ for k = 1: (Time_out/Ts)-1
     
     b = b1 + b2_algo1 + Ax*X;
     
-    ck = quadprog(H, f, -Ac, -b, [], [], lb, ub, [], options);
+    % [x,status] = mpcqpsolver(Linv,f,A,b,Aeq,beq,iA0,options)
+    ck = mpcqpsolver(Linv, zeros(2, 1), Ac, b, [], zeros(0,1), false(size(b)), options);
+    % ck = quadprog(H, f, -Ac, -b, [], [], lb, ub, [], options);
     
     if isempty(ck)
         c = 0;
