@@ -1,13 +1,8 @@
 %% Initialise physical model and parameters for controller
 % This script is implements the correct Lyapunov hessian weight P_bar
-% Uses quadprog instead of mpcqpsolver
+% Uses mpcqpsolver
 % separates MPC hessians from quadprog
 % updated inverted_pen to reduce gain for observer 
-% added Algo 1 for cart position
-% Run Algo 1 on the cart angle
-% variable Variance after k = 1000;
-% finite size on algo 1 data
-% gather confidences of algo 1 on both x and phi
 % Replace quadprog with mpcqpsolver
 
 tic
@@ -74,87 +69,46 @@ confid = b1_inter;
 confid2 = confid;
 
 fprintf('Progress:')
+%% For loop for MPC
+
 for k = 1: (Time_out/Ts)-1 
     
     % progress bar
     if k/100 == round(k/100)
        fprintf('#') 
     end
-    % Run algo 1 to update bounds
-    no_algo_1 = 200;
-    
-    if k > no_algo_1
-        
-        % Run algo1 on the cart position
-        ey = struct;
-        ey_inter = [zeros(2, 4), C(:, 1:4)]*x(:, 1:k );
-        
-        ey.sample = ey_inter(1, k - no_algo_1: k);
-        ey.dim = 2;
-        
-        [r_star, Ptrail, Ntrail, q_min, q_max] = algo1(ey, ep_lo, ep_hi, Ppor, Ppst);
-        [x_hat, q_hat] = algo1_return(ey, Ntrail, q_min, q_max);
-        
-        b1_inter(k) = x_hat(2, 1);
-        % find the confidence of algorithm 1
-        m = length(ey.sample);
-        confid(k) = binocdf(q_hat - 1, m, 1 - (q_hat/m));
-        
-        % Run Algo1 on the angle phi
-        ephi = struct;
-        
-        ephi.sample = ey_inter(2, k - no_algo_1: k);
-        ephi.dim = 2;
-        
-        [r_star2, Ptrail2, Ntrail2, q_min2, q_max2] = algo1(ephi, ep_lo, ep_hi, Ppor, Ppst);
-        [x_hat2, q_hat2] = algo1_return(ephi, Ntrail2, q_min2, q_max2);
-        
-        b2_inter(k) = x_hat2(2, 1);
-        % find confidence of algorithm2
-        m = length(ephi.sample);
-        confid2(k) = binocdf(q_hat2 - 1, m, 1 - (q_hat2/m));
-        
-    end
-    
-    b2_algo1 = [b1_inter(k); b2_inter(k); 0];
-    % repeat b2 matrix 
-    b2_algo1 = repmat(b2_algo1, length(b1)/length(b2_algo1), 1);
-    
-    b = b1 + b2_algo1 + Ax*X;
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % Run algo 1 to update bound    
+    b = b1 + Ax*X;
     
     % [x,status] = mpcqpsolver(Linv,f,A,b,Aeq,beq,iA0,options)
-    ck = mpcqpsolver(Linv, zeros(2, 1), Ac, b, [], zeros(0,1), false(size(b)), options);
+    ck = mpcqpsolver(Linv, zeros(p, 1), Ac, b, [], zeros(0,1), false(size(b)), options);
     % ck = quadprog(H, f, -Ac, -b, [], [], lb, ub, [], options);
     
     if isempty(ck)
         c = 0;
     else
-    c = ck(1);
+        c = ck(1);
     end
     
-    if k > 500 && k < 1200
-        varW = 0.01;
-        varV = 0.01;
-    
-    else
-        varW = 0.003;
-        varV = 0.003;
-    end
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    varW = 0.01;
+    varV = 0.01;
     
     w =  varW*randn(no_states, 1);
     w(3) = w(3)*0.1 + varV*rand(1, 1) - 0.5*varV;
     
     v =  varV*rand(no_outputs, 1);
     v(2) = v(2)*0.1; 
-    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     x(:, k+1) = A*x(:, k) + B*c + w;
     y(:, k) = C*x(:, k) + v;
-    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     X = x(:, k);
-    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     x2(:, k+1) = A*x2(:, k) + w;
     y2(:, k) = C*x2(:, k) + v;
-    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
     Ck(k) = c;
 end
