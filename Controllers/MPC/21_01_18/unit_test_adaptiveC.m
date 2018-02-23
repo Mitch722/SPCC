@@ -1,13 +1,7 @@
-try 
-    try_statement = A;
-    
-catch
-    MPC_adaptive_1
-    
-end
+load('output_input.mat')
 
-params.m = 50;
-params.n = 100;
+params.m = 6;
+params.n = 200;
 params.Ts = 0.01;
 
 % p must be divisible by three
@@ -15,9 +9,10 @@ p = 6;
 
 Q_bar = eye(p); 
 
-Y = y(:, end - 300: end);
+y(:, end) = [];
+Y = y(:, 1: 300);
 Ck1 = Ck(:, end - 300: end); 
 
 bnds = [0.8, 0.15, 0.4]';
 
-c = adaptiveControl(Q_bar, Y, Ck1, p, params, bnds);
+c = adaptiveControl2(Q_bar, Y, Ck1, p, params, bnds);

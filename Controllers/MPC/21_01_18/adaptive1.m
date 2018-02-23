@@ -1,12 +1,5 @@
+load('output_input.mat')
 
-
-try 
-    try_statement = A;
-    
-catch
-    MPC_inv_10
-    
-end
 
 %% Try the least squares 
 n = 50;
@@ -55,9 +48,9 @@ end
 
 D = NaN*zeros(n*length(y(:,1)), 2*m);
 % build up the D matrix
-nm_end = y_0_index + 1;
+nm_end = y_0_index;
 
-n_point = y_0_index + m;
+n_point = y_0_index + m - 1;
 
 no_outputs2 = length(y2(:,1));
 
@@ -70,21 +63,21 @@ for i = 1:n
     
 end
 
-psudo = (D'*D)\D';
+psudo = (D'*D);
 
-P = psudo*Y;
+P = psudo\D'*Y;
 
-P_expanded = reshape(P, [], no_outputs2);
+P_expanded = reshape(P, no_outputs2, []);
 end
 
-
 function [Ap, Bp] = estSS(P, m)
+
+% take only the parameters for the states:
 
 Ap = zeros(m);
 Ap(2:m, 2:m) = eye(m-1);
 
-last_row_A = flipud(P(1:m));
-last_row_A = last_row_A';
+last_row_A = P(1:m)';
 
 Ap(end, :) = last_row_A;
 

@@ -29,7 +29,7 @@ Ts = sys_obv.Ts;
 % z(k+i|k) = psi^i * z(k|k)
 
 % horizon window length make sure divisible by 3
-p = 3;
+p = 12;
 
 Q = C'*C;
 R = 1;
@@ -45,17 +45,13 @@ ep_hi = 0.10;
 Ppor = 0.9;
 Ppst = 0.95;
 
-Q_bar = eye(p);
-
 %% prepare MPC 
-Time_out = 20;
+Time_out = 10;
 x = zeros(no_states, Time_out/Ts);
 y = zeros(no_outputs, Time_out/Ts);
 
 x2 = x;
 y2 = y;
-
-u = x(1, :);
 
 Ck = zeros(1, Time_out/Ts);
 
@@ -102,15 +98,25 @@ for k = 1: (Time_out/Ts)-1
             c = ck(1);
         end
     else
+        try 
+            a = PhiP;
+        catch
+            y_samp = y(:, 1: 200);
+            c_samp = Ck(:, 1: 200);
+            
+            params.m = 20;
+            params.n = 50 - params.m;
+            params.Ts = Ts; 
+            
+            [PhiP, Bp, Cp, K_opt] = initial_params(y_samp, c_samp, params);
+            
+            Q_bar = eye(size(PhiP));
+            
+            [Q_bar, ~] = solveLyapunov(PhiP, Bp, Q_bar, K_opt, R, p);
+            
+        end
         
-        params.m = 4;
-        params.n = 50 - params.m;
-        params.Ts = Ts;
-        
-        bnds = [0.8, 1.5, 1.0]';
-        % using u instead of Ck
-        [c_inter, PhiP, Bp, Cp] = adaptiveControl2(Q_bar, y(:, k-200: k-1), u(:, k-200:k-1), p, params, bnds);                
-        
+        c_inter = adaptive_algo1(x(k), y(:, k-200: k-1), Ck(:, k -200: k-1), p, Q_bar, main_bounds, Ts);
         c = c_inter(1,1);
         
     end
@@ -132,7 +138,6 @@ for k = 1: (Time_out/Ts)-1
     x2(:, k+1) = A*x2(:, k) + w;
     y2(:, k) = C*x2(:, k) + v;
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    u(k) = [K_opt, zeros(1, 4)]*X + c;
     
     Ck(k) = c;
 end

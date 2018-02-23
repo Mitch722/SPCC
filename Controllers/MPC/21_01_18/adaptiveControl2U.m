@@ -1,4 +1,4 @@
-function c = adaptiveControl(Q_bar, Y, Ck, p, params, bnds)
+function [c, Ap, Bp, Cp] = adaptiveControl2U(Q_bar, Y, Ck, p, params, bnds)
 n = params.n;
 m = params.m;
 Ts = params.Ts;
@@ -6,20 +6,22 @@ Ts = params.Ts;
 assert(p/length(bnds) == round(p/length(bnds)), 'bounds need to repeat: p must be divisible by 3')
 % takes data, generates model and finds optimal input c.
 
-% perform least squares on cart velocity
-[Yx, ~, Px, ~] = least_squares_params(Y(1, :), Ck, n, m);
-% perform least squares on pendulum velocity
-[Yphi, ~, Pphi, ~] = least_squares_params(Y(2, :), Ck, n, m);
+% perform least squares on complete output
+[~, ~, P, ~] = least_squares_params(Y, Ck, n, m);
 
-[Apx, Bpx, Cpx] = estSS(Px, m);
-[Aphi, Bphi, Cphi] = estSS(Pphi, m);
-% fully augmented matrix
-[Ap, Bp, Cp, Xp] = augment_estSS(Apx, Aphi, Bpx, Bphi, Cpx, Cphi, Yx, Yphi);
-% Perform LQR on the generated matrix
+[Ap, Bp, Cp] = estSS(P, m);
+Cp = zeros(2, m);
+Cp(1, end-1) = 1;
+Cp(end, end) = 1;
 
+% check eigen_values 
 eigen_values = eig(Ap);
 
-K_opt = zeros(1, length(Ap));
+Q = eye(m);
+R = 1;
+N = 0;
+
+[PhiP, Bp, K_opt] = optmal_gain(Ap, Bp, Q, R, N);
 % find the constraints for optimisation
 [Ac, Ax, b1] = make_constraints(Ap, Bp, Cp, K_opt, p, bnds);
 
@@ -27,43 +29,35 @@ K_opt = zeros(1, length(Ap));
 [L2, ~] = chol(Q_bar,'lower');
 Linv = inv(L2);
 
+Xp = reshape(Y(:, end- (m/2) +1:end), [], 1);
+
+% The acutal correct input
 b = b1 + Ax*Xp;
 
 % options for mpcqpsolver:
 options = mpcqpsolverOptions;
 
 c = mpcqpsolver(Linv, zeros(p, 1), Ac, b, [], zeros(0,1), false(size(b)), options);
-
+% c = quadprog(Q_bar, f, -Ac, -b, [], [], lb, ub, [], options);
 
 %% The functions inside adaptive control
 
 function [Y, D, P, P_expanded] = least_squares_params(y, c, n, m)
 % This function takes the input data and makes an input output data model
-assert(n > m, 'the number of rows should be greater than columns, necessary that n > m')
+assert(n >= m, 'the number of rows should be greater than columns, necessary that n > m')
 assert(length(y)>= n+m, 'y vector is too small: make n and m smaller'  )
 
 % find y_0 index
 y_0_index = length(y) - n - m;
 % Y the column vector for data n long
-Y = y(:, y_0_index + m + 1: end)';
+Y = y(:, y_0_index + m + 1: end);
 Y = reshape(Y, [], 1);
 % make sure y or c is repeated
-if length(y(:,1)) > length(c(:,1))
-   
-    c2 = repmat(c, length(y(:,1))/length(c(:,1)), 1);
-    y2 = y;
-    
-elseif length(y(:,1)) < length(c(:,1))
-   
-    y2 = repmat(y, length(c(:,1))/length(y(:,1)), 1);
-    c2 = c;
-else
-    c2 = c;
-    y2 = y;
-    
-end
 
-D = NaN*zeros(n*length(y(:,1)), 2*m);
+y2 = y;
+c2 = c;
+
+D = NaN*zeros(n*length(y(:,1)), 3*m);
 % build up the D matrix
 nm_end = y_0_index;
 
@@ -74,7 +68,13 @@ no_outputs2 = length(y2(:,1));
 for i = 1:n
     
    d_inter = fliplr(y2(:, nm_end + i: n_point + i));
-   d_inter = [d_inter, fliplr(c2(:, nm_end + i: n_point + i))]; 
+   
+   c_input = fliplr(c2(:, nm_end + i: n_point + i)); 
+   c_inter = [c_input, zeros(size(c_input))];
+   
+   c_inter = [c_inter; zeros(size(c_input)), c_input];
+   
+   d_inter = [d_inter, c_inter]; 
    
    D(i*no_outputs2 - no_outputs2 +1 : i*no_outputs2, :) = d_inter;
     
@@ -98,12 +98,23 @@ Ap(2:m, 2:m) = eye(m-1);
 
 last_row_A = P(1:m)';
 
-Ap(end, :) = last_row_A;
+Ap(end, :) = (last_row_A);
+Ap(end-1, :) = last_row_A;
 
 Bp = zeros(m, 1);
-Bp(end, 1) = 1;
+Bp(end-1 : end, 1) = [1; 1];
 
-Cp = P(m+1: end, 1)';
+Cp_inter = P(m+1: end, :)';
+% flip to put correct coefficients in the correct place
+Cp_inter = fliplr(Cp_inter);
+Cp = zeros(2, m);
+
+for i = 1: m/2
+    
+    Cp(1, (i-1)*2 + 1 ) = Cp_inter(1, i);
+    Cp(2,  2*i ) = Cp_inter(1, m+i);
+    
+end
 
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -6,12 +6,12 @@ load('output_input.mat')
 n = 50;
 m = 10;
 
-y = zeros(1, 100);
-c = y;
+y = zeros(2, 100);
+c = zeros(1, 100);
 for i = 1 : length(y)
    
-    y(i) = i;
-    c(i) = i;
+    y(:, i) = [i; i];
+    c(:, i) = i;
 end
 
 [Y, D, P, P_expanded] = least_squares_params(y, c, n, m);
@@ -30,25 +30,14 @@ assert(length(y)>= n+m, 'y vector is too small: make n and m smaller'  )
 % find y_0 index
 y_0_index = length(y) - n - m;
 % Y the column vector for data n long
-Y = y(:, y_0_index + m + 1: end)';
+Y = y(:, y_0_index + m + 1: end);
 Y = reshape(Y, [], 1);
 % make sure y or c is repeated
-if length(y(:,1)) > length(c(:,1))
-   
-    c2 = repmat(c, length(y(:,1))/length(c(:,1)), 1);
-    y2 = y;
-    
-elseif length(y(:,1)) < length(c(:,1))
-   
-    y2 = repmat(y, length(c(:,1))/length(y(:,1)), 1);
-    c2 = c;
-else
-    c2 = c;
-    y2 = y;
-    
-end
 
-D = NaN*zeros(n*length(y(:,1)), 2*m);
+y2 = y;
+c2 = c;
+
+D = NaN*zeros(n*length(y(:,1)), 3*m);
 % build up the D matrix
 nm_end = y_0_index;
 
@@ -59,7 +48,13 @@ no_outputs2 = length(y2(:,1));
 for i = 1:n
     
    d_inter = fliplr(y2(:, nm_end + i: n_point + i));
-   d_inter = [d_inter, fliplr(c2(:, nm_end + i: n_point + i))]; 
+   
+   c_input = fliplr(c2(:, nm_end + i: n_point + i)); 
+   c_inter = [c_input, zeros(size(c_input))];
+   
+   c_inter = [c_inter; zeros(size(c_input)), c_input];
+   
+   d_inter = [d_inter, c_inter]; 
    
    D(i*no_outputs2 - no_outputs2 +1 : i*no_outputs2, :) = d_inter;
     
