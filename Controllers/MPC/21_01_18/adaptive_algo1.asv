@@ -40,7 +40,7 @@ for i = 1: Ntrial
     y_inter = fliplr(y_samp(:, (i-1)*n +1 : i*n ));
     c_inter = fliplr(c_samp(:, (i-1)*n +1 : i*n ));
     
-    [c(:, i), Model{1, i}, Model{2, i},  Model{3, i}, Xp] = adaptiveControl5(Q_bar, y_inter, c_inter, p, params, bnds);
+    [c(:, i), Model{1, i}, Model{2, i},  Model{3, i}] = adaptiveControl5(Q_bar, y_inter, c_inter, p, params, bnds);
     
     
 end
@@ -57,7 +57,7 @@ input_seq = c(:, j);
         Bp   = Model{2, i};
         Cp   = Model{3, i};
         
-        x_t = Xp;
+        x_t = x0;
         % Run each model 
         for t = 1:p
            

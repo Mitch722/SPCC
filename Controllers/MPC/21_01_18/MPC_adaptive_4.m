@@ -90,7 +90,7 @@ for k = 1: (Time_out/Ts)-1
     % Run algo 1 to update bound    
     b = b1 + Ax*X;
     
-    if k <= 200
+    if k <= 201
     
     % [x,status] = mpcqpsolver(Linv,f,A,b,Aeq,beq,iA0,options)
         ck = mpcqpsolver(Linv, zeros(p, 1), Ac, b, [], zeros(0,1), false(size(b)), options);
@@ -104,12 +104,12 @@ for k = 1: (Time_out/Ts)-1
     else
         
         params.m = 4;
-        params.n = 120 - params.m;
+        params.n = 124 - params.m;
         params.Ts = Ts;
         
         bnds = [0.8, 1.5]';
         % using u instead of Ck
-        [c_inter, PhiP, Bp, Cp] = adaptiveControl3(H, y(:, k-200: k-1), u(:, k-200:k-1), p, params, bnds);                
+        [c_inter, PhiP, Bp, Cp, P] = adaptiveControl4(H, y(:, k-200: k-1), u(:, k-200:k-1), p, params, bnds);                
         
         c = c_inter(1,1);
         

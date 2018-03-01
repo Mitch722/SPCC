@@ -55,6 +55,8 @@ y = zeros(no_outputs, Time_out/Ts);
 x2 = x;
 y2 = y;
 
+Xp = zeros(4, Time_out/Ts);
+
 u = x(1, :);
 
 Ck = zeros(1, Time_out/Ts);
@@ -87,11 +89,10 @@ for k = 1: (Time_out/Ts)-1
        fprintf('#') 
     end
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    if k < 300
     % Run algo 1 to update bound    
     b = b1 + Ax*X;
-    
-    if k <= 200
-    
+        
     % [x,status] = mpcqpsolver(Linv,f,A,b,Aeq,beq,iA0,options)
         ck = mpcqpsolver(Linv, zeros(p, 1), Ac, b, [], zeros(0,1), false(size(b)), options);
     % ck = quadprog(H, f, -Ac, -b, [], [], lb, ub, [], options);
@@ -101,15 +102,36 @@ for k = 1: (Time_out/Ts)-1
         else
             c = ck(1);
         end
-    else
+     else
         
         params.m = 4;
-        params.n = 120 - params.m;
+        params.n = 100 - params.m;
         params.Ts = Ts;
         
-        bnds = [0.8, 1.5]';
+        [~, ~, P, ~] = least_squares_params(y(:, 1:199), u(:, 1:199), params.n, params.m);
+        
+        [Ap2, Bp2, Cp2] = estSS(P, params.m);
+        
+        % x(:, 201) = zeros(8, 1);
+        
+        Kp2 = dlqr(Ap2,Bp2,Cp2'*Cp2,1,0);
+        % Q_bar = dlyap(Ap2, Cp2'*Cp2);
+        PhiP2 = Ap2 - Bp2*Kp2;
+        
+        % Xp(:, k) = PhiP2*Xp(:, k-1) + Bp2*Ck(:, k-1);
+        % Xp(:, k) = getState_n_4(y(:, k-200: k-1), Ck(:, k-200: k-1), PhiP2, Bp2, Cp2);
+        % bounds for 
+        bnds = [0.8, 1.5, 0.4]';
+        % [H, ~, ~, ~, ~, ~, ~, ~] = MPC_vars(PhiP2, Bp2, Cp2, Kp2, R, p, bnds, maxF);
+      
         % using u instead of Ck
-        [c_inter, PhiP, Bp, Cp] = adaptiveControl3(H, y(:, k-200: k-1), u(:, k-200:k-1), p, params, bnds);                
+        % [c_inter, PhiP, Bp, Cp, P, Xp(:, k)] = adaptiveControl5(H, y(:, k-200: k-1), u(:, k-200:k-1), p, params, bnds);                
+        c_inter = adaptive_algo1(y(:, 100: k-1), u(:, 100: k-1), p, H, bnds, Ts);
+        
+        if abs(c_inter(1)) > 10
+            
+            c_inter = 0;
+        end
         
         c = c_inter(1,1);
         
@@ -135,6 +157,7 @@ for k = 1: (Time_out/Ts)-1
     u(k) = [K_opt, zeros(1, 4)]*X + c;
     
     Ck(k) = c;
+       
 end
 
 fprintf('\n')
