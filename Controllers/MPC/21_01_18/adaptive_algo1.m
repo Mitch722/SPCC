@@ -12,12 +12,9 @@ x.dim = 2;
 x.sample = y;
 x.M = length(x.sample);
 
-[~, ~, Ntrial, q_min, q_max] = algo1(x, ep_lo, ep_hi, Ppor, Ppst);
+[rstar, ~, Ntrial, q_min, q_max] = algo1(x, ep_lo, ep_hi, Ppor, Ppst);
 
 %%
-
-n = round(x.M / Ntrial);
-
 Ntrial = round(Ntrial);
 % take samples from the end/ most recent time samples
 y_samp = fliplr(y);
@@ -26,21 +23,21 @@ c_samp = fliplr(c);
 % preallocate c the input
 c = zeros(p, Ntrial);
 % make a Model cell arrays
-Model = cell(3, Ntrial);
+Model = cell(4, Ntrial);
 
 %% Parameters for Adaptive control
 
-params.m = 20;
-params.n = n - params.m;
+params.m = 4;
+params.n = rstar - params.m;
 params.Ts = Ts;
 
 %% Calculate all the 
 for i = 1: Ntrial
     
-    y_inter = fliplr(y_samp(:, (i-1)*n +1 : i*n ));
-    c_inter = fliplr(c_samp(:, (i-1)*n +1 : i*n ));
+    y_inter = fliplr(y_samp(:, (i-1)*params.n +1 : end));
+    c_inter = fliplr(c_samp(:, (i-1)*params.n +1 : end));
     
-    [c(:, i), Model{1, i}, Model{2, i},  Model{3, i}, Xp] = adaptiveControl5(Q_bar, y_inter, c_inter, p, params, bnds);
+    [c(:, i), Model{1, i}, Model{2, i},  Model{3, i}, Model{4, 1}] = adaptiveControl5(Q_bar, y_inter, c_inter, p, params, bnds);
     
     
 end
@@ -57,7 +54,7 @@ input_seq = c(:, j);
         Bp   = Model{2, i};
         Cp   = Model{3, i};
         
-        x_t = Xp;
+        x_t = Model{4, i};
         % Run each model 
         for t = 1:p
            

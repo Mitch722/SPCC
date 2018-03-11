@@ -1,0 +1,60 @@
+function ck = ACSA_1(M, y, u, p, params, Q_bar, bnds, Ts)
+
+
+%% check that there is enough data
+assert(length(y) >= M*(params.n+params.m), 'There is not enough data to make M models')
+
+% amount of data reqired to create the model
+n = params.n;
+% the order fo the genereated system
+m = params.m;
+
+seglen = n + m;
+%%  Run algorithm 1 to gather relative data
+ep_lo = 0.05;
+ep_hi = 0.10;
+
+Ppor = 0.9;
+Ppst = 0.95;
+
+x.dim = 4;
+x.sample = zeros(4, M);
+x.M = M;
+
+[rstar, ~, Ntrial, q_min, q_max] = algo1(x, ep_lo, ep_hi, Ppor, Ppst);
+
+%% Define the M models
+
+Mmodels = cell(8, M);
+
+entry.PhiP = 1;
+entry.Bp = 2;
+entry.Cp = 3;
+entry.P = 4;
+entry.H = 5;
+entry.Ac = 6;
+entry.Ax = 7;
+entry.b1 = 8;
+% [PhiP, Bp, Cp, P, H, Ac, Ax, b1] = makeModelandConstraints(y, u, p, params, bnds);
+% use a parfor loop to create M models by calling the above command
+
+% flip the data, simplifies which part of the data to use
+y_flip = fliplr(y);
+u_flip = fliplr(u);
+
+for i = 1: M
+    
+    % initialise the last n + m data, seglen = n+m
+    
+    y0 = (i-1)*seglen + 1;
+    y1 = i*seglen;
+    
+    y_data = fliplr(y_flip(:, y0: y1));
+    u_data = 
+    
+    [PhiP, Bp, Cp, P, H, Ac, Ax, b1] = makeModelandConstraints(y_data, u_data, p, params, bnds);
+    
+    
+    
+    
+end
