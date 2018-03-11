@@ -1,4 +1,4 @@
-function [ck, Mmodels] = ACSA_1(M, y, u, p, params, Q_bar, bnds, Ts)
+function [ck, Mmodels] = ACSA_1(M, y, u, p, params, Q_bar, bnds)
 
 
 %% check that there is enough data
@@ -9,16 +9,16 @@ n = params.n;
 % the order fo the genereated system
 m = params.m;
 
-seglen = n + m;
+seglen = n + m + 1;
 %%  Run algorithm 1 to gather relative data
 ep_lo = 0.05;
 ep_hi = 0.10;
 
-Ppor = 0.9;
-Ppst = 0.95;
+Ppor = 0.80;
+Ppst = 0.85;
 
-x.dim = 4;
-x.sample = zeros(4, M);
+x.dim = 2;
+x.sample = zeros(2, M);
 x.M = M;
 
 [rstar, ~, Ntrial, q_min, q_max] = algo1(x, ep_lo, ep_hi, Ppor, Ppst);
@@ -44,7 +44,7 @@ u_flip = fliplr(u);
 
 for i = 1: M
     
-    % initialise the last n + m data, seglen = n+m
+    % initialise the last n + m data, seglen = n+m+1
     
     y0 = (i-1)*seglen + 1;
     y1 = i*seglen;
@@ -54,9 +54,11 @@ for i = 1: M
     
     [PhiP, Bp, Cp, P, H, Ac, Ax, b1] = makeModelandConstraints(y_data, u_data, p, params, bnds);
     % Store the data in the cell array
-    Mmodels{entry.Phip, i} = PhiP;  Mmodels{entry.Bp, i} = Bp; Mmodels{entry.Cp, i} = Cp;
+    Mmodels{entry.PhiP, i} = PhiP;  Mmodels{entry.Bp, i} = Bp; Mmodels{entry.Cp, i} = Cp;
     Mmodels{entry.P, i} = P;  Mmodels{entry.H, i} = H; Mmodels{entry.Ac, i} = Ac;
     Mmodels{entry.Ax, i} = Ax;  Mmodels{entry.b1, i} = b1;
     
-    
+   
 end
+
+ck = NaN;

@@ -11,7 +11,6 @@ function [PhiP, Bp, Cp, P, H, Ac, Ax, b1] = makeModelandConstraints(Y, Ck, p, pa
 % Define the model parameters 
 n = params.n;
 m = params.m;
-Ts = params.Ts;
 
 assert(p/length(bnds) == round(p/length(bnds)), 'bounds need to repeat: p must be divisible by 3')
 % takes data, generates model and finds optimal input c.
