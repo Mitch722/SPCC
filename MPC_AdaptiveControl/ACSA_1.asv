@@ -1,4 +1,4 @@
-function [ck, Mmodels] = ACSA_1(M, y, u, p, params, Q_bar, bnds, Xp)
+function [ck, Mmodels, RstarModel] = ACSA_1(M, y, u, p, params, Q_bar, bnds, Xp)
 
 
 % check that there is enough data
@@ -78,7 +78,7 @@ sampleModels = Mmodels(:, random_entries);
 % Make constraints Ac*ck <= b1 + Ax*Xp 
 
 % cell array to store optimal references
-cStar = cell(1, Ntrial);
+cStar = cell(2, Ntrial);
 % MPC references
 % make 
 [L2, ~] = chol(Q_bar, 'lower');
@@ -105,12 +105,12 @@ for i = 1 : Ntrial
     cStar{1, i} = c;
     
 end
-%% Choose an Optimal ck from cStar
+%% Calcualte the number of violations of all the other inputs
 rStarSubSamps = reshape(random_entries, [], rstar);
 
 rStarModels = Mmodels;
 % physical bounds on outputs
-bndlims = repmat(bnds(1:2, :), ,1)
+bndlims = repmat(bnds(1:2, :), (M-rstar), 1);
 
 for i = 1: Ntrial
     
@@ -135,9 +135,19 @@ for i = 1: Ntrial
       
    end
    
-   violations = sum()
+   violations = sum((Yv > bndlims), 2);
+   cStar{2, i} = sum(violations, 1);
    
 end
+%% choose the otpimal value for ck 
+compare = 0.5*(q_min + q_max);
+
+diff = compare - cell2mat(cStar(2, :));
+[~, opt_index] = min(abs(diff));
+
+% choose the optimal input which gives the optimal number of violations
+ck = cStar{1, opt_index};
+
+RstarModel = sampleModels(:, (opt_index-1)*rstar +1 : opt );
 
 
-ck = NaN;
