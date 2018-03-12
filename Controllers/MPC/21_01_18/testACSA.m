@@ -21,7 +21,9 @@ Ts = 0.01;
 %Xp = getState_n_4(Y, Ck, PhiP, Bp, Cp);
 Xp = randn(4, 1);
 
-[~, Mmodels] = ACSA_1(M, y, Ck, p, params, Q_bar, bnds, Xp);
+tic
+[ck, Mmodels] = ACSA_1(M, y, Ck, p, params, Q_bar, bnds, Xp);
+toc
 %%
 % mod2 = Mmodels(:, 1:3);
 
@@ -32,4 +34,15 @@ sampleModels = Mmodels(:, random_entries)';
 
 Ax = sampleModels(:, 6);
 Ax = cell2mat(Ax);
+
+sampleModels = sampleModels';
+
+bigPhi = sparse(blkdiag(sampleModels{1, :}));
+sparseBigPhi = sparse(bigPhi);
+
+bigXp = repmat(Xp, 3, 1);
+
+dp = sparseBigPhi* bigXp;
+dp1 = bigPhi*bigXp;
+
 

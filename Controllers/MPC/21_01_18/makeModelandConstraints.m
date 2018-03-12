@@ -1,4 +1,4 @@
-function [PhiP, Bp, Cp, P, H, Ac, Ax, b1] = makeModelandConstraints(Y, Ck, p, params, bnds)
+function [PhiP, Bp, Cp, P, H, Ac, Ax, b1, K_opt] = makeModelandConstraints(Y, Ck, p, params, bnds)
 
 % This function is based upon adaptiveControl5.m 
 % Functionality:
