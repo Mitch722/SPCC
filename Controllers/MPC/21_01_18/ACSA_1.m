@@ -1,7 +1,7 @@
 function [ck, Mmodels] = ACSA_1(M, y, u, p, params, Q_bar, bnds)
 
 
-%% check that there is enough data
+% check that there is enough data
 assert(length(y) >= M*(params.n+params.m), 'There is not enough data to make M models')
 
 % amount of data reqired to create the model
@@ -23,6 +23,10 @@ x.M = M;
 
 [rstar, ~, Ntrial, q_min, q_max] = algo1(x, ep_lo, ep_hi, Ppor, Ppst);
 
+rstar = round(rstar);
+Ntrial = round(Ntrial);
+
+assert(M > rstar*Ntrial, 'The number of samples is too few to sample from')
 %% Define the M models
 
 Mmodels = cell(8, M);
@@ -60,5 +64,21 @@ for i = 1: M
     
    
 end
+
+%% Randomly Sample Rstar * Ntrial Models for performing optimization over
+
+[~, rowMmod] = size(Mmodels);
+
+random_entries = randperm(rowMmod, rstar*Ntrial);
+sampleModels = Mmodels(:, random_entries);
+
+%% Calculate the Optimal value of Cstar_i for all the sample Models
+
+% for i = 1 : Ntrial
+%     
+%     
+%     
+% end
+
 
 ck = NaN;
