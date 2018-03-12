@@ -1,4 +1,4 @@
-function [ck, Mmodels, RstarModel] = ACSA_1(M, y, u, p, params, Q_bar, bnds, Xp)
+function [ck, Mmodels, RstarModel, entry] = ACSA_1(M, y, u, p, params, Q_bar, bnds, Xp)
 
 
 % check that there is enough data
@@ -148,6 +148,6 @@ diff = compare - cell2mat(cStar(2, :));
 % choose the optimal input which gives the optimal number of violations
 ck = cStar{1, opt_index};
 
-RstarModel = sampleModels(:, opt_index*rstar : (opt_index+1)*rstar - 1);
+RstarModel = sampleModels(:, (opt_index-1)*rstar + 1 : (opt_index)*rstar - 1);
 
 

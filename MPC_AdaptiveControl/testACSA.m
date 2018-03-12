@@ -1,12 +1,10 @@
-try 
+ 
+load('output_input.mat')
     
-    a  = y;
-    
-catch
-    
-    load('output_input.mat')
-    
-end
+
+
+y(:, end) = [];
+Ck(:, end) = [];
 
 M = 80;
 p = 12;
@@ -22,7 +20,15 @@ Ts = 0.01;
 Xp = randn(4, 1);
 
 tic
-[ck, Mmodels, RstarModel] = ACSA_1(M, y, Ck, p, params, Q_bar, bnds, Xp);
+[ck, Mmodels, RstarModel, entry] = ACSA_1(M, y, Ck, p, params, Q_bar, bnds, Xp);
+toc
+
+%% test RmodelOutput 
+tic
+
+[uk, c] = RmodelOutput(Q_bar, RstarModel, entry, y, Ck, p);
+
+
 toc
 %%
 % mod2 = Mmodels(:, 1:3);
@@ -48,3 +54,5 @@ dp1 = bigPhi*bigXp;
 %% choose optimal Phip
 % find the average of all the models
 
+[noItems, noRstar] = size(RstarModel);
+aveModel = (1/noRstar)*sum(cat(3, RstarModel{1, :}), 3 );
