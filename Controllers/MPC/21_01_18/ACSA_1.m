@@ -1,4 +1,4 @@
-function [ck, Mmodels] = ACSA_1(M, y, u, p, params, Q_bar, bnds)
+function [ck, Mmodels] = ACSA_1(M, y, u, p, params, Q_bar, bnds, Xp)
 
 
 % check that there is enough data
@@ -39,6 +39,7 @@ entry.H = 5;
 entry.Ac = 6;
 entry.Ax = 7;
 entry.b1 = 8;
+
 % [PhiP, Bp, Cp, P, H, Ac, Ax, b1] = makeModelandConstraints(y, u, p, params, bnds);
 % use a parfor loop to create M models by calling the above command
 
@@ -73,12 +74,38 @@ random_entries = randperm(rowMmod, rstar*Ntrial);
 sampleModels = Mmodels(:, random_entries);
 
 %% Calculate the Optimal value of Cstar_i for all the sample Models
+% Make constraints Ac*ck <= b1 + Ax*Xp 
 
-% for i = 1 : Ntrial
-%     
-%     
-%     
-% end
+% cell array to store optimal references
+cStar = cell(1, Ntrial);
+% MPC references
+% make 
+[L2, ~] = chol(Q_bar, 'lower');
+Linv = inv(L2);
+% options for mpcsolver
+options = mpcqpsolverOptions;
+
+for i = 1 : Ntrial
+    Ac0 = (i-1)*rstar + 1;
+    Ac1 = i*rstar;
+    
+    Ac = sampleModels(entry.Ac, Ac0: Ac1)';
+    Ac = cell2mat(Ac);
+    
+    Ax = sampleModels(entry.Ax, Ac0: Ac1)';
+    Ax = cell2mat(Ax);
+    
+    b1 = sampleModels(entry.b1, Ac0: Ac1)';
+    b1 = cell2mat(b1);
+    
+    b = b1 + Ax*Xp;
+    
+    c = mpcqpsolver(Linv, zeros(p, 1), Ac, b, [], zeros(0,1), false(size(b)), options);
+    cStar{1, i} = c;
+    
+end
+%% Choose an Optimal ck from cStar
+
 
 
 ck = NaN;
