@@ -153,7 +153,7 @@ for k = 1: (Time_out/Ts)-1
             ck = 0;
         end
         
-        c = ck(1);
+        c = uk(1);
         u_adapt(k) = uk;
         
     end

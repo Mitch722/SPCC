@@ -15,7 +15,7 @@ c2 = c;
 
 c2(end) = [];
 
-D = NaN*zeros(n*length(y(:,1)), 3*m + 2);
+D = zeros(n*length(y(:,1)), 3*m + 2);
 % build up the D matrix
 nm_end = y_0_index;
 
