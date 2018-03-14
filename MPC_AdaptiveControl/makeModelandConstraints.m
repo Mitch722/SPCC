@@ -20,8 +20,11 @@ assert(p/length(bnds) == round(p/length(bnds)), 'bounds need to repeat: p must b
 [Ap, Bp, Cp] = estSS(P, m);
 
 Qp = Cp'*Cp;
-
-K_opt = dlqr(Ap, Bp, Qp, 1, 0);
+try
+    K_opt = dlqr(Ap, Bp, Qp, 1, 0);
+catch
+    K_opt = zeros(1, length(Ap));
+end
 % Q_bar = dlyap(Ap2, Cp2'*Cp2);
 PhiP = Ap - Bp*K_opt;
 

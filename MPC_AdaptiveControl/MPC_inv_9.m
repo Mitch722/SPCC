@@ -135,7 +135,7 @@ for k = 1: (Time_out/Ts)-1
     x(:, k+1) = A*x(:, k) + B*c + w;
     y(:, k) = C*x(:, k) + v;
     
-    X = x(:, k);
+    X = x(:, k+1);
     
     x2(:, k+1) = A*x2(:, k) + w;
     y2(:, k) = C*x2(:, k) + v;

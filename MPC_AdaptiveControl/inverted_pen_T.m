@@ -1,4 +1,4 @@
-function [sys_obv, L, K_opt] = inverted_pen_T(Ts, M, m)
+function [sys_obv, sysd, L, K_opt] = inverted_pen_T(Ts, M, m)
 
 %% Make the Inverted Pendulum model
 % Physical data stored in a struct
