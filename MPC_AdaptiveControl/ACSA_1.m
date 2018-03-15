@@ -17,7 +17,7 @@ ep_hi = 0.10;
 Ppor = 0.80;
 Ppst = 0.85;
 
-x.dim = 2;
+x.dim = 1;
 x.sample = zeros(2, M);
 x.M = M;
 

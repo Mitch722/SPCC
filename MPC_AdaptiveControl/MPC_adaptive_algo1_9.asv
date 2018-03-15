@@ -28,14 +28,19 @@ ratioTs = TsObvs / TsFast;
 x = zeros(4, Time_out/TsFast);
 y = zeros(2, Time_out/TsFast);
 
+x2 = x;
+y2 = y;
+
 xhat = zeros(4, Time_out/TsObvs);
 yhat = zeros(2, Time_out/TsObvs);
 
 u = x(1, :);
 u_adapt = u;
 
+uobvs = u;
+
 Ck = zeros(1, Time_out/TsFast);
-c = 0;
+cobvs = 0;
 
 maxF = 100;
 
@@ -72,17 +77,16 @@ for k = 1 : Time_out/TsFast
         
         b = b1 + Ax*X;
         
-        if k <= 1299
-            % [x,status] = mpcqpsolver(Linv,f,A,b,Aeq,beq,iA0,options)
-            ck = mpcqpsolver(Linv, f, Ac, b, [], zeros(0,1), false(size(b)), options);
-            % ck = quadprog(H, f, -Ac, -b, [], [], lb, ub, [], options);
+        % [x,status] = mpcqpsolver(Linv,f,A,b,Aeq,beq,iA0,options)
+        ck = mpcqpsolver(Linv, f, Ac, b, [], zeros(0,1), false(size(b)), options);
+        % ck = quadprog(H, f, -Ac, -b, [], [], lb, ub, [], options);
 
-            if isempty(ck) || abs(ck(1)) > 10
-                c = 0;
-            else
-                c = ck(1);
-            end
+        if isempty(ck) || abs(ck(1)) > 10
+            cobvs = ck(1)*ck(1)/ab;
+        else
+            cobvs = ck(1);
         end
+
     end       
     % Initialise Adaptive Control
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
@@ -118,8 +122,8 @@ for k = 1 : Time_out/TsFast
     end
     % Adaptive Control run at k0 intervals
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    bnds = [0.8, 1.5, 1]';
-    if k > adaptTime  && k / ratioTs == round(k/ratioTs)
+    bnds = [0.8, 1.5, 20]';
+    if k > adaptTime % && k / ratioTs == round(k/ratioTs)
         if k/25 == round(k/25)
 
             Xp = getState_n_4(y(:, 1:k-1), u(:, 1:k-1), PhiP2, Bp2, Cp2);
@@ -140,8 +144,8 @@ for k = 1 : Time_out/TsFast
         if abs(ck(1)) > 20
             ck = 0;
         end
-        if abs(uka) > 10000
-            uka = 0;
+        if abs(uka) > 1000
+            uka = 20*uka/abs(uka);
         end
         c = uka(1);
         u_adapt(k) = uka;
@@ -160,12 +164,23 @@ for k = 1 : Time_out/TsFast
     
     sysd = inverted_pen_T_model(TsFast, M, m);
     % use the MPC output value
-    Ck(k) = c;
+    if k > adaptTime
+        Ck(k) = c;
+    else
+        Ck(k) = cobvs;
+    end
+    
+    Aphys = sysd.A + 0.05*rand(4) - 0.53*0.05*ones(4);
     
     uk = -K_opt*xhat(:, k0) + Ck(k); 
     u(k) = uk;
-    x(:, k+1) = (sysd.A + 0.05*rand(4) - 0.53*0.05*ones(4))*x(:, k) + sysd.B*uk + w;
+    x(:, k+1) = Aphys*x(:, k) + sysd.B*uk + w;
     y(:, k+1) = sysd.C*x(:, k+1) + v;
+    
+    ukobvs = -K_opt*xhat(:, k0) + cobvs;
+    
+    x2(:, k+1) = Aphys*x2(:, k) + sysd.B*ukobvs + w;
+    y2(:, k+1) = sysd.C*x2(:, k+1) + v;
      
 end
 
@@ -176,9 +191,9 @@ figure
 t1 = linspace(0, Time_out, length(y(1, :)));
 t2 = linspace(0, Time_out, length(yhat(1, :)));
 
-plot(t1, y(1, :))
+plot(t1, y(1, :), 'b')
 hold on
-% plot(t2, yhat(1, :));
+plot(t1, y2(1, :), 'r');
 grid on
 
 stairs([0, Time_out], [main_bounds(1), main_bounds(1)], 'k')
@@ -189,9 +204,9 @@ xlabel('Time/s')
 ylabel('Cart Position from Centre')
 
 figure
-plot(t1, y(2, :))
+plot(t1, y(2, :), 'b')
 hold on
-% plot(t2, yhat(2, :));
+plot(t1, y2(2, :), 'r');
 
 stairs([0, Time_out], [main_bounds(2), main_bounds(2)], 'k')
 stairs([0, Time_out], [-main_bounds(2), -main_bounds(2)], 'k')
@@ -206,3 +221,15 @@ stairs(u)
 
 grid on
 title('Reference Input MPC')
+
+figure 
+grid on
+subplot(2,2,1); plot(t1, y(1, :)); title('Cart Position Adaptive Control');
+
+subplot(2,2,2); plot(t1, y2(1, :)); title('Cart Position MPC')
+
+subplot(2,2,3); plot(t1, y(2, :)); title('Angle phi Adaptive Control');
+
+subplot(2,2,4); plot(t1, y2(2, :)); title('Angle phi MPC')
+
+

@@ -1,7 +1,7 @@
 % Run simulation with varying time Dynamics
 
-TsFast = 0.001;
-Time_out = 5;
+TsFast = 0.005;
+Time_out = 15;
 
 TsObvs = 0.01;
 %% Define the Observer
@@ -15,7 +15,7 @@ B = sysdObv.B;
 C = sysdObv.C;
 D = sysdObv.D;
 
-p = 12;
+p = 24;
 
 Q = C'*C;
 R = 1;
@@ -47,6 +47,7 @@ Linv = inv(L2);
 % options for mpcqpsolver:
 options = mpcqpsolverOptions;
 
+adaptTime = 1500;
 %%
 k0 = 1;
 for k = 1 : Time_out/TsFast
@@ -85,9 +86,9 @@ for k = 1 : Time_out/TsFast
     end       
     % Initialise Adaptive Control
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   
-    if k == 1298
+    if k == adaptTime - 1
         % Try statement 
-
+        
         params.m = 4;
         params.n = 100 - params.m;
         % params.Ts = Ts;
@@ -106,16 +107,17 @@ for k = 1 : Time_out/TsFast
         [Q_bar, ~, ~, ~, ~, ~, ~, ~] = MPC_vars(PhiP2, Bp2, Cp2, Kp2, R, p, bnds, maxF);
 
         % This would be threaded used to generate RStarModels
-        M_samps = 80;
-
+        M_samps = 90;
+        
         params.m = 4;
         params.n = 10;
         [~, Mmodels, RstarModel, entry] = ACSA_1(M_samps, y(:, 1:k-1), u(:, 1:k-1), p, params, Q_bar, bnds, Xp);
 
     end
-    % Adaptive Control
+    % Adaptive Control run at k0 intervals
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    if k > 1299 && k / ratioTs == round(k/ratioTs)
+    bnds = [0.8, 1.5, 20]';
+    if k > adaptTime && k / ratioTs == round(k/ratioTs)
         if k0/25 == round(k0/25)
 
             Xp = getState_n_4(y(:, 1:k-1), u(:, 1:k-1), PhiP2, Bp2, Cp2);
@@ -126,19 +128,32 @@ for k = 1 : Time_out/TsFast
             PhiP2 = (1/noRstar)*sum(cat(3, RstarModel{entry.PhiP, :}), 3 );
             Bp2 = (1/noRstar)*sum(cat(3, RstarModel{entry.Bp, :}), 3 );
             Cp2 = (1/noRstar)*sum(cat(3, RstarModel{entry.Cp, :}), 3 );
+            Kp2 = (1/noRstar)*sum(cat(3, RstarModel{entry.K_opt, :}), 3 );
             
         end
         % genereate the states from set RstarModel
         % generate uk = [Kopt1, ... Kopti, ... KoptR]*[Xp1,...XpR]' + ck
-        [uk, ck] = RmodelOutput(Q_bar, RstarModel, entry, y(:, 1:ratioTs:k-1), u(:, 1:k-1), p);
+        % use an average model instead of all of the models
+        aveModel = cell(3, 1);
+        aveModel{entry.PhiP, 1} = PhiP2;
+        aveModel{entry.Bp, 1} = Bp2;
+        aveModel{entry.Cp, 1} = Cp2;
+        [Q_bar, ~, Ac2, Ax2, b12, ~, ~, ~] = MPC_vars(PhiP2, Bp2, Cp2, Kp2, R, p, bnds, maxF);
+        aveModel{entry.Ac, 1} = Ac2;
+        aveModel{entry.Ax, 1} = Ax2;
+        aveModel{entry.K_opt, 1} = Kp2;
+        aveModel{entry.b1, 1} = b12;
+                       
+        [uka, ck] = RmodelOutput(Q_bar, aveModel, entry, y(:, 1:k-1), u(:, 1:k-1), p);
 
-        if abs(ck(1)) > 10
-            uk = 0;
+        if abs(ck(1)) > 1000
             ck = 0;
         end
-
-        c = ck(1);
-        u_adapt(k) = uk;
+        if abs(uka) > 10000
+            uka = 0;
+        end
+        c = uka;
+        u_adapt(k) = uka;
     end    
     % Physical Model
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -158,7 +173,7 @@ for k = 1 : Time_out/TsFast
     
     uk = -K_opt*xhat(:, k0) + Ck(k); 
     u(k) = uk;
-    x(:, k+1) = (sysd.A + 0.01*rand(4) - 0.5*0.01*ones(4))*x(:, k) + sysd.B*uk + w;
+    x(:, k+1) = (sysd.A + 0.05*rand(4) - 0.53*0.05*ones(4))*x(:, k) + sysd.B*uk + w;
     y(:, k+1) = sysd.C*x(:, k+1) + v;
      
 end
@@ -172,7 +187,6 @@ t2 = linspace(0, Time_out, length(yhat(1, :)));
 
 plot(t1, y(1, :))
 hold on
-plot(t2, yhat(1, :));
 grid on
 
 stairs([0, Time_out], [main_bounds(1), main_bounds(1)], 'k')
@@ -185,7 +199,6 @@ ylabel('Cart Position from Centre')
 figure
 plot(t1, y(2, :))
 hold on
-plot(t2, yhat(2, :));
 
 stairs([0, Time_out], [main_bounds(2), main_bounds(2)], 'k')
 stairs([0, Time_out], [-main_bounds(2), -main_bounds(2)], 'k')

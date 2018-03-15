@@ -1,7 +1,7 @@
 % Run simulation with varying time Dynamics
 
-TsFast = 0.001;
-Time_out = 5;
+TsFast = 0.005;
+Time_out = 15;
 
 TsObvs = 0.01;
 %% Define the Observer
@@ -15,7 +15,7 @@ B = sysdObv.B;
 C = sysdObv.C;
 D = sysdObv.D;
 
-p = 12;
+p = 24;
 
 Q = C'*C;
 R = 1;
@@ -98,7 +98,7 @@ for k = 1 : Time_out/TsFast
     
     uk = -K_opt*xhat(:, k0) + Ck; 
     u(k) = uk;
-    x(:, k+1) = (sysd.A + 0.01*rand(4) - 0.5*0.01*ones(4))*x(:, k) + sysd.B*uk + w;
+    x(:, k+1) = (sysd.A + 0.05*rand(4) - 0.53*0.05*ones(4))*x(:, k) + sysd.B*uk + w;
     y(:, k+1) = sysd.C*x(:, k+1) + v;
      
 end
@@ -112,7 +112,7 @@ t2 = linspace(0, Time_out, length(yhat(1, :)));
 
 plot(t1, y(1, :))
 hold on
-plot(t2, yhat(1, :));
+% plot(t2, yhat(1, :));
 grid on
 
 stairs([0, Time_out], [main_bounds(1), main_bounds(1)], 'k')
@@ -125,7 +125,7 @@ ylabel('Cart Position from Centre')
 figure
 plot(t1, y(2, :))
 hold on
-plot(t2, yhat(2, :));
+% plot(t2, yhat(2, :));
 
 stairs([0, Time_out], [main_bounds(2), main_bounds(2)], 'k')
 stairs([0, Time_out], [-main_bounds(2), -main_bounds(2)], 'k')
