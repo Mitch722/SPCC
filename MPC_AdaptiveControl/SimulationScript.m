@@ -14,9 +14,9 @@ Time_out = 20;
 %% Plot figures 
 
 figure
-plot(t1, yAdapt(1, :), 'b')
-hold on
 plot(t1, yMPC(1, :), 'r')
+hold on
+plot(t1, yAdapt(1, :), 'b')
 grid on
 
 stairs([0, Time_out], [main_bounds(1), main_bounds(1)], 'k')
@@ -27,9 +27,9 @@ xlabel('Time/s')
 ylabel('Cart Position from Centre')
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 figure
-plot(t1, yAdapt(2, :), 'b')
-hold on
 plot(t1, yMPC(2, :), 'r')
+hold on
+plot(t1, yAdapt(2, :), 'b')
 grid on
 title('Angle phi Adaptive vs MPC')
 xlabel('Time/s')
