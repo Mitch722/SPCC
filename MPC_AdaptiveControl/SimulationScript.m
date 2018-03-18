@@ -1,11 +1,13 @@
 %% Runs Adaptive MPC and MPC 
-
+tic
 % Bias on the Model variance
 bias = 0.53;
 % Time out time
 Time_out = 20;
+
 % Run Adaptive Control algorithm
 [yAdapt, uAdapt, ~, yhatAdapt, ~] = AdaptiveMPCsim(bias, Time_out);
+
 % Run MPC algorithm
 [yMPC, uMPC, t1, yhatMPC, main_bounds] = MPCsim(bias, Time_out);
 
@@ -79,4 +81,4 @@ title('Angle phi MPC')
 xlabel('Time/s')
 ylabel('Angle phi of Pendulum')
 
-
+toc
