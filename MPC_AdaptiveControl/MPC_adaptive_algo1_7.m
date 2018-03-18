@@ -4,6 +4,8 @@ TsFast = 0.005;
 Time_out = 15;
 
 TsObvs = 0.01;
+
+rng default
 %% Define the Observer
 M0 = 1.5;   M = M0;
 m0 = 0.2;   m = m0;
@@ -135,21 +137,21 @@ for k = 1 : Time_out/TsFast
         % genereate the states from set RstarModel
         % generate uk = [Kopt1, ... Kopti, ... KoptR]*[Xp1,...XpR]' + ck
         
-        [uka, ck] = RmodelOutput(Q_bar, RstarModel, entry, y(:, 1:k-1), u(:, 1:k-1), p);
+        [uka, cka] = RmodelOutput(Q_bar, RstarModel, entry, y(:, 1:k-1), u(:, 1:k-1), p);
 
-        if abs(ck(1)) > 20
-            ck = 0;
+        if abs(cka(1)) > 20
+            cka = 0;
         end
-        if abs(uka) > 10000
-            uka = 0;
+        if abs(uka) > 100
+            uka = 20*uka/abs(uka);
         end
-        c = uka(1);
+        c = cka(1);
         u_adapt(k) = uka;
     end    
     % Physical Model
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    M = M - 0.1*TsFast*M + 0.001*TsFast*randn(1,1);
-    m = m - 0.1*TsFast*m + 0.001*TsFast*randn(1,1);
+    M = M - 0.01*TsFast*M + 0.001*TsFast*randn(1,1);
+    m = m - 0.01*TsFast*m + 0.001*TsFast*randn(1,1);
     
     varW = 0.01;
     varV = 0.01;
@@ -164,7 +166,7 @@ for k = 1 : Time_out/TsFast
     
     uk = -K_opt*xhat(:, k0) + Ck(k); 
     u(k) = uk;
-    x(:, k+1) = (sysd.A + 0.05*rand(4) - 0.53*0.05*ones(4))*x(:, k) + sysd.B*uk + w;
+    x(:, k+1) = (sysd.A + 0.05*rand(4) - 0.45*0.05*ones(4))*x(:, k) + sysd.B*uk + w;
     y(:, k+1) = sysd.C*x(:, k+1) + v;
      
 end
@@ -176,7 +178,7 @@ figure
 t1 = linspace(0, Time_out, length(y(1, :)));
 t2 = linspace(0, Time_out, length(yhat(1, :)));
 
-plot(t1, y(1, :))
+plot(t1, y(1, :), 'b')
 hold on
 % plot(t2, yhat(1, :));
 grid on
@@ -189,7 +191,7 @@ xlabel('Time/s')
 ylabel('Cart Position from Centre')
 
 figure
-plot(t1, y(2, :))
+plot(t1, y(2, :), 'b')
 hold on
 % plot(t2, yhat(2, :));
 

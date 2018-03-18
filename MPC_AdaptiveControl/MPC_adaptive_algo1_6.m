@@ -4,6 +4,8 @@ TsFast = 0.005;
 Time_out = 15;
 
 TsObvs = 0.01;
+
+rng default
 %% Define the Observer
 M0 = 1.5;   M = M0;
 m0 = 0.2;   m = m0;
@@ -82,8 +84,8 @@ for k = 1 : Time_out/TsFast
     end       
     % Physics of dyanamics
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    M = M - 0.1*TsFast*M + 0.001*TsFast*randn(1,1);
-    m = m - 0.1*TsFast*m + 0.001*TsFast*randn(1,1);
+    M = M - 0.01*TsFast*M + 0.001*TsFast*randn(1,1);
+    m = m - 0.01*TsFast*m + 0.001*TsFast*randn(1,1);
     
     varW = 0.01;
     varV = 0.01;
@@ -110,7 +112,7 @@ figure
 t1 = linspace(0, Time_out, length(y(1, :)));
 t2 = linspace(0, Time_out, length(yhat(1, :)));
 
-plot(t1, y(1, :))
+plot(t1, y(1, :), 'r')
 hold on
 % plot(t2, yhat(1, :));
 grid on
@@ -118,12 +120,12 @@ grid on
 stairs([0, Time_out], [main_bounds(1), main_bounds(1)], 'k')
 stairs([0, Time_out], [-main_bounds(1), -main_bounds(1)], 'k')
 
-title('Cart Position MPC vs LQR')
+title('Cart Position MPC vs Adaptive MPC')
 xlabel('Time/s')
 ylabel('Cart Position from Centre')
 
 figure
-plot(t1, y(2, :))
+plot(t1, y(2, :), 'r')
 hold on
 % plot(t2, yhat(2, :));
 

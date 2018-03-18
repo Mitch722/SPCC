@@ -1,4 +1,4 @@
-function [Y, D, P, P_expanded] = least_squares_params(y, c, n, m)
+function [Y, D, P, P_expanded] = least_squares_params_new(y, c, n, m)
 % This function takes the input data and makes an input output data model
 assert(n >= m, 'the number of rows should be greater than columns, necessary that n > m')
 assert(length(y)>= n+m, 'y vector is too small: make n and m smaller'  )

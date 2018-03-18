@@ -40,6 +40,7 @@ u_adapt = u;
 uobvs = u;
 
 Ck = zeros(1, Time_out/TsFast);
+Ckobvs = Ck;
 cobvs = 0;
 
 maxF = 100;
@@ -78,13 +79,13 @@ for k = 1 : Time_out/TsFast
         b = b1 + Ax*X;
         
         % [x,status] = mpcqpsolver(Linv,f,A,b,Aeq,beq,iA0,options)
-        ck = mpcqpsolver(Linv, f, Ac, b, [], zeros(0,1), false(size(b)), options);
+        ckMPC = mpcqpsolver(Linv, f, Ac, b, [], zeros(0,1), false(size(b)), options);
         % ck = quadprog(H, f, -Ac, -b, [], [], lb, ub, [], options);
 
-        if isempty(ck) || abs(ck(1)) > 20
+        if isempty(ckMPC) || abs(ckMPC(1)) > 20
             cobvs = 0;  % 10*ck(1)/abs(ck(1));
         else
-            cobvs = ck(1);
+            cobvs = ckMPC(1);
         end
 
     end       
@@ -123,7 +124,7 @@ for k = 1 : Time_out/TsFast
     % Adaptive Control run at k0 intervals
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     bnds = [0.8, 1.5, 20]';
-    if k > adaptTime % && k / ratioTs == round(k/ratioTs)
+    if k > adaptTime && k / ratioTs == round(k/ratioTs)
         if k/25 == round(k/25)
 
             Xp = getState_n_4(y(:, 1:k-1), u(:, 1:k-1), PhiP2, Bp2, Cp2);
@@ -139,15 +140,15 @@ for k = 1 : Time_out/TsFast
         % genereate the states from set RstarModel
         % generate uk = [Kopt1, ... Kopti, ... KoptR]*[Xp1,...XpR]' + ck
         
-        [uka, ck] = RmodelOutput(Q_bar, RstarModel, entry, y(:, 1:k-1), u(:, 1:k-1), p);
+        [uka, cka] = RmodelOutput(Q_bar, RstarModel, entry, y(:, 1:k-1), u(:, 1:k-1), p);
 
-        if abs(ck(1)) > 20
-            ck = 0;
+        if abs(cka(1)) > 20
+            cka = 0;
         end
         if abs(uka) > 100
             uka = 20*uka/abs(uka);
         end
-        c = ck(1);
+        c = cka(1);
         u_adapt(k) = uka;
     end    
     % Physical Model
@@ -178,6 +179,7 @@ for k = 1 : Time_out/TsFast
     y(:, k+1) = sysd.C*x(:, k+1) + v;
     
     ukobvs = -K_opt*xhat(:, k0) + cobvs;
+    Ckobvs(k) = cobvs;
     
     x2(:, k+1) = Aphys*x2(:, k) + sysd.B*ukobvs + w;
     y2(:, k+1) = sysd.C*x2(:, k+1) + v;
