@@ -1,7 +1,8 @@
+function [y, u, t1, yhat, main_bounds] = AdaptiveMPCsim(bias, Time_out)
+
 % Run simulation with varying time Dynamics
 
 TsFast = 0.005;
-Time_out = 20;
 
 TsObvs = 0.01;
 
@@ -166,7 +167,7 @@ for k = 1 : Time_out/TsFast
     
     uk = -K_opt*xhat(:, k0) + Ck(k); 
     u(k) = uk;
-    x(:, k+1) = (sysd.A + 0.05*rand(4) - 0.53*0.05*ones(4))*x(:, k) + sysd.B*uk + w;
+    x(:, k+1) = (sysd.A + 0.05*rand(4) - bias*0.05*ones(4))*x(:, k) + sysd.B*uk + w;
     y(:, k+1) = sysd.C*x(:, k+1) + v;
      
 end
