@@ -2,14 +2,26 @@
 tic
 % Bias on the Model variance
 bias = 0.53;
+% noise width for the uniform dist
+nWidth = 0.05;
 % Time out time
 Time_out = 20;
+% save in s the current random noise generator
+s = 'default';
 
 % Run Adaptive Control algorithm
-[yAdapt, uAdapt, ~, yhatAdapt, ~] = AdaptiveMPCsim(bias, Time_out);
+[yAdapt, uAdapt, ~, yhatAdapt, ~] = AdaptiveMPCsim(bias, Time_out, nWidth, s);
 
 % Run MPC algorithm
-[yMPC, uMPC, t1, yhatMPC, main_bounds] = MPCsim(bias, Time_out);
+[yMPC, uMPC, t1, yhatMPC, main_bounds] = MPCsim(bias, Time_out, nWidth, s);
+
+%% Count the Violations
+
+noViolAdapt = countViolations(yAdapt, main_bounds);
+eps_Adapt = noViolAdapt/(2*length(yAdapt(1, :)));
+
+noViolMPC = countViolations(yMPC, main_bounds);
+eps_MPC = noViolMPC/(2*length(yMPC(1, :)));
 
 %% Plot figures 
 
@@ -82,3 +94,4 @@ xlabel('Time/s')
 ylabel('Angle phi of Pendulum')
 
 toc
+

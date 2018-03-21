@@ -1,4 +1,4 @@
-function [y, u, t1, yhat, main_bounds] = MPCsim(bias, Time_out)
+function [y, u, t1, yhat, main_bounds] = MPCsim(bias, Time_out, nWidth, s)
 
 
 % Run simulation with varying time Dynamics
@@ -7,7 +7,7 @@ TsFast = 0.005;
 
 TsObvs = 0.01;
 
-rng default
+rng(s);
 %% Define the Observer
 M0 = 1.5;   M = M0;
 m0 = 0.2;   m = m0;
@@ -25,7 +25,7 @@ Q = C'*C;
 R = 1;
 
 % main_bounds = [x, phi, u]
-main_bounds = [0.8, 0.15, 0.4]';
+main_bounds = [0.8, 0.15, 40]';
 
 ratioTs = TsObvs / TsFast;
 %% Initialise the variable masses
@@ -60,8 +60,8 @@ for k = 1 : Time_out/TsFast
         
         k0 = k/ ratioTs;
         
-        varW = 0.01;
-        varV = 0.01;
+        varW = 0.0051;
+        varV = 0.0051;
         w =  varW*randn(4, 1);
         w(3) = w(3)*0.1 + varV*rand(1, 1) - 0.5*varV;
         v =  varV*rand(2, 1);
@@ -89,8 +89,8 @@ for k = 1 : Time_out/TsFast
     M = M - 0.01*TsFast*M + 0.001*TsFast*randn(1,1);
     m = m - 0.01*TsFast*m + 0.001*TsFast*randn(1,1);
     
-    varW = 0.01;
-    varV = 0.01;
+    varW = 0.0051;
+    varV = 0.0051;
     w =  varW*randn(4, 1);
     w(3) = w(3)*0.1 + varV*rand(1, 1) - 0.5*varV;
     v =  varV*rand(2, 1);
@@ -102,7 +102,7 @@ for k = 1 : Time_out/TsFast
     
     uk = -K_opt*xhat(:, k0) + Ck; 
     u(k) = uk;
-    x(:, k+1) = (sysd.A + 0.05*rand(4) - bias*0.05*ones(4))*x(:, k) + sysd.B*uk + w;
+    x(:, k+1) = (sysd.A + nWidth*rand(4) - bias*nWidth*ones(4))*x(:, k) + sysd.B*uk + w;
     y(:, k+1) = sysd.C*x(:, k+1) + v;
      
 end

@@ -1,4 +1,4 @@
-function [ck, Mmodels, RstarModel, entry] = ACSA_1(M, y, u, p, params, Q_bar, bnds, Xp)
+function [ck, Mmodels, RstarModel, entry] = ACSA_1(M, y, u, p, params, Q_bar, bnds)
 
 
 % check that there is enough data
@@ -29,7 +29,7 @@ Ntrial = round(Ntrial);
 assert(M > rstar*Ntrial, 'The number of samples is too few to sample from')
 %% Define the M models
 
-Mmodels = cell(9, M);
+Mmodels = cell(10, M);
 
 entry.PhiP = 1;
 entry.Bp = 2;
@@ -40,6 +40,7 @@ entry.Ac = 6;
 entry.Ax = 7;
 entry.b1 = 8;
 entry.K_opt = 9;
+entry.Xp = 10;
 
 % [PhiP, Bp, Cp, P, H, Ac, Ax, b1, K_opt] = makeModelandConstraints(y, u, p, params, bnds);
 % use a parfor loop to create M models by calling the above command
@@ -60,10 +61,12 @@ for i = 1: M
     
     [PhiP, Bp, Cp, P, H, Ac, Ax, b1, K_opt] = makeModelandConstraints(y_data, u_data, p, params, bnds);
     % Store the data in the cell array
+    Xp = getState_n_4(y_data, u_data, PhiP, Bp, Cp);
+    % Store the data in the cell array
     Mmodels{entry.PhiP, i} = PhiP;  Mmodels{entry.Bp, i} = Bp; Mmodels{entry.Cp, i} = Cp;
     Mmodels{entry.P, i} = P;  Mmodels{entry.H, i} = H; Mmodels{entry.Ac, i} = Ac;
     Mmodels{entry.Ax, i} = Ax;  Mmodels{entry.b1, i} = b1; Mmodels{entry.K_opt, i} = K_opt;
-    
+    Mmodels{entry.Xp, i} = Xp;
    
 end
 
@@ -93,11 +96,15 @@ for i = 1 : Ntrial
     Ac = sampleModels(entry.Ac, Ac0: Ac1)';
     Ac = cell2mat(Ac);
     
-    Ax = sampleModels(entry.Ax, Ac0: Ac1)';
-    Ax = cell2mat(Ax);
-    
+%     Ax = sampleModels(entry.Ax, Ac0: Ac1)';
+%     Ax = cell2mat(Ax);
+    Ax = blkdiag(sampleModels{entry.Ax, Ac0: Ac1});
+        
     b1 = sampleModels(entry.b1, Ac0: Ac1)';
     b1 = cell2mat(b1);
+    
+    Xp = sampleModels(entry.Xp, Ac0: Ac1)';
+    Xp = cell2mat(Xp);
     
     b = b1 + Ax*Xp;
     
@@ -111,18 +118,19 @@ rStarSubSamps = reshape(random_entries, [], rstar);
 rStarModels = Mmodels;
 % physical bounds on outputs
 bndlims = repmat(bnds(1:2, :), (M-rstar), 1);
+totalNoViol = 2*p*(M-rstar);
 
-for i = 1: Ntrial
-    
-   Xv = zeros(4*(M-rstar), p+1);
-   Xv(:, 1) = repmat(Xp, (M-rstar), 1);
-   Yv = zeros(2*(M-rstar), p+1);
-    
+for i = 1: Ntrial 
+   
    % px1 vector if input references 
    ck = cStar{1, i}';
    rModels = rStarModels;
    rModels(:, rStarSubSamps(1, :)) = []; 
    % Perform all the models in one go
+   Xv = zeros(4*(M-rstar), p+1);
+   Xv(:, 1) = cell2mat(rModels(entry.Xp, :)');
+   Yv = zeros(2*(M-rstar), p+1);
+   
    bigPhi = sparse(blkdiag(rModels{entry.PhiP, :}));
    bigB = sparse(cell2mat( rModels(entry.Bp, :)' ));
    bigC = blkdiag(rModels{entry.Cp, :});
@@ -135,12 +143,14 @@ for i = 1: Ntrial
       
    end
    
-   violations = sum((Yv > bndlims), 2);
-   cStar{2, i} = sum(violations, 1);
+   violations = sum((abs(Yv) > bndlims), 2);
+   violations = sum(violations, 1);
+   
+   cStar{2, i} = 1 - violations/totalNoViol;
    
 end
 %% choose the otpimal value for ck 
-compare = 0.5*(q_min + q_max);
+compare = 0.5*(q_min + q_max)/M;
 
 diff = compare - cell2mat(cStar(2, :));
 [~, opt_index] = min(abs(diff));

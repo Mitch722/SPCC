@@ -1,4 +1,4 @@
-function [y, u, t1, yhat, main_bounds] = AdaptiveMPCsim(bias, Time_out)
+function [y, u, t1, yhat, main_bounds] = AdaptiveMPCsim(bias, Time_out, nWidth, s)
 
 % Run simulation with varying time Dynamics
 
@@ -6,7 +6,7 @@ TsFast = 0.005;
 
 TsObvs = 0.01;
 
-rng default
+rng(s);
 %% Define the Observer
 M0 = 1.5;   M = M0;
 m0 = 0.2;   m = m0;
@@ -24,7 +24,7 @@ Q = C'*C;
 R = 1;
 
 % main_bounds = [x, phi, u]
-main_bounds = [0.8, 0.15, 0.4]';
+main_bounds = [0.8, 0.15, 40]';
 
 ratioTs = TsObvs / TsFast;
 %% Initialise the variable masses
@@ -36,6 +36,7 @@ yhat = zeros(2, Time_out/TsObvs);
 
 u = x(1, :);
 u_adapt = u;
+u_lq = u;
 
 Ck = zeros(1, Time_out/TsFast);
 c = 0;
@@ -61,8 +62,8 @@ for k = 1 : Time_out/TsFast
         
         k0 = k/ ratioTs;
         
-        varW = 0.01;
-        varV = 0.01;
+        varW = 0.0051;
+        varV = 0.0051;
         w =  varW*randn(4, 1);
         w(3) = w(3)*0.1 + varV*rand(1, 1) - 0.5*varV;
         v =  varV*rand(2, 1);
@@ -75,7 +76,7 @@ for k = 1 : Time_out/TsFast
         
         b = b1 + Ax*X;
         
-        if k <= 1299
+        if k <= adaptTime - 1
             % [x,status] = mpcqpsolver(Linv,f,A,b,Aeq,beq,iA0,options)
             ck = mpcqpsolver(Linv, f, Ac, b, [], zeros(0,1), false(size(b)), options);
             % ck = quadprog(H, f, -Ac, -b, [], [], lb, ub, [], options);
@@ -105,9 +106,9 @@ for k = 1 : Time_out/TsFast
 
         PhiP2 = Ap2 - Bp2*Kp2;
         % generate the states for the parameter estimation
-        Xp = getState_n_4(y(:, 1:k-1), u(:, 1:k-1), PhiP2, Bp2, Cp2);
+        % Xp = getState_n_4(y(:, 1:k-1), u(:, 1:k-1), PhiP2, Bp2, Cp2);
         
-        bnds = [0.8, 1.5, 0.4]';
+        bnds = [0.8, 1.5, 40]';
         
         [Q_bar, ~, ~, ~, ~, ~, ~, ~] = MPC_vars(PhiP2, Bp2, Cp2, Kp2, R, p, bnds, maxF);
 
@@ -116,24 +117,24 @@ for k = 1 : Time_out/TsFast
         
         params.m = 4;
         params.n = 10;
-        [~, Mmodels, RstarModel, entry] = ACSA_1(M_samps, y(:, 1:k-1), u(:, 1:k-1), p, params, Q_bar, bnds, Xp);
+        [~, Mmodels, RstarModel, entry] = ACSA_1(M_samps, y(:, 1:k-1), u(:, 1:k-1), p, params, Q_bar, bnds);
 
     end
     % Adaptive Control run at k0 intervals
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    bnds = [0.8, 1.5, 1]';
+    bnds = [0.8, 1.5, 40]';
     if k > adaptTime  && k / ratioTs == round(k/ratioTs)
         if k/25 == round(k/25)
 
-            Xp = getState_n_4(y(:, 1:k-1), u(:, 1:k-1), PhiP2, Bp2, Cp2);
+            % Xp = getState_n_4(y(:, 1:k-1), u(:, 1:k-1), PhiP2, Bp2, Cp2);
 
-            [~, Mmodels, RstarModel, entry] = ACSA_1(M_samps, y(:, 1:k-1), u(:, 1:k-1), p, params, Q_bar, bnds, Xp);
+            [~, Mmodels, RstarModel, entry] = ACSA_1(M_samps, y(:, 1:k-1), u(:, 1:k-1), p, params, Q_bar, bnds);
             [noItems, noRstar] = size(RstarModel);
             % recalculate an average model
             PhiP2 = (1/noRstar)*sum(cat(3, RstarModel{entry.PhiP, :}), 3 );
             Bp2 = (1/noRstar)*sum(cat(3, RstarModel{entry.Bp, :}), 3 );
             Cp2 = (1/noRstar)*sum(cat(3, RstarModel{entry.Cp, :}), 3 );
-            
+            [Q_bar, ~, ~, ~, ~, ~, ~, ~] = MPC_vars(PhiP2, Bp2, Cp2, Kp2, R, p, bnds, maxF);
         end
         % genereate the states from set RstarModel
         % generate uk = [Kopt1, ... Kopti, ... KoptR]*[Xp1,...XpR]' + ck
@@ -154,8 +155,8 @@ for k = 1 : Time_out/TsFast
     M = M - 0.01*TsFast*M + 0.001*TsFast*randn(1,1);
     m = m - 0.01*TsFast*m + 0.001*TsFast*randn(1,1);
     
-    varW = 0.01;
-    varV = 0.01;
+    varW = 0.0051;
+    varV = 0.0051;
     w =  varW*randn(4, 1);
     w(3) = w(3)*0.1 + varV*rand(1, 1) - 0.5*varV;
     v =  varV*rand(2, 1);
@@ -167,7 +168,10 @@ for k = 1 : Time_out/TsFast
     
     uk = -K_opt*xhat(:, k0) + Ck(k); 
     u(k) = uk;
-    x(:, k+1) = (sysd.A + 0.05*rand(4) - bias*0.05*ones(4))*x(:, k) + sysd.B*uk + w;
+    
+    u_lq(k) = -K_opt*xhat(:, k0);
+    
+    x(:, k+1) = (sysd.A + nWidth*rand(4) - bias*nWidth*ones(4))*x(:, k) + sysd.B*uk + w;
     y(:, k+1) = sysd.C*x(:, k+1) + v;
      
 end
