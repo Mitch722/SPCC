@@ -5,7 +5,7 @@ bias = 0.53;
 % noise width for the uniform dist
 nWidth = 0.05;
 % Time out time
-Time_out = 20;
+Time_out = 30;
 % save in s the current random noise generator
 s = 'default';
 
@@ -15,6 +15,7 @@ s = 'default';
 % Run MPC algorithm
 [yMPC, uMPC, t1, yhatMPC, main_bounds] = MPCsim(bias, Time_out, nWidth, s);
 
+toc
 %% Count the Violations
 
 noViolAdapt = countViolations(yAdapt, main_bounds);
@@ -93,5 +94,57 @@ title('Angle phi MPC')
 xlabel('Time/s')
 ylabel('Angle phi of Pendulum')
 
-toc
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+figure
 
+plot(t1, yAdapt(1, :), 'b')
+grid on
+hold on
+stairs([0, Time_out], [main_bounds(1), main_bounds(1)], 'k')
+stairs([0, Time_out], [-main_bounds(1), -main_bounds(1)], 'k')
+title('Cart Position Adaptive MPC')
+xlabel('Time/s')
+ylabel('Cart Position from Centre')
+
+axis([0 30 -1.5 1.5])
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+figure
+plot(t1, yMPC(1, :), 'r')
+grid on
+hold on
+stairs([0, Time_out], [main_bounds(1), main_bounds(1)], 'k')
+stairs([0, Time_out], [-main_bounds(1), -main_bounds(1)], 'k')
+title('Cart Position MPC')
+xlabel('Time/s')
+ylabel('Cart Position from Centre')
+
+axis([0 30 -1.5 1.5])
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+figure
+
+plot(t1, yAdapt(2, :), 'b')
+grid on
+hold on
+stairs([0, Time_out], [main_bounds(2), main_bounds(2)], 'k')
+stairs([0, Time_out], [-main_bounds(2), -main_bounds(2)], 'k')
+title('Angle phi Adaptive')
+xlabel('Time/s')
+ylabel('Angle phi of Pendulum')
+
+axis([0 30 -0.5 0.9])
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+figure
+
+plot(t1, yMPC(2, :), 'r')
+grid on
+hold on
+stairs([0, Time_out], [main_bounds(2), main_bounds(2)], 'k')
+stairs([0, Time_out], [-main_bounds(2), -main_bounds(2)], 'k')
+title('Angle phi MPC')
+xlabel('Time/s')
+ylabel('Angle phi of Pendulum')
+
+axis([0 30 -0.5 0.9])
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

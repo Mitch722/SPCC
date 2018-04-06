@@ -141,7 +141,7 @@ for k = 1 : Time_out/TsFast
         
         [uka, cka] = RmodelOutput(Q_bar, RstarModel, entry, y(:, 1:k-1), u(:, 1:k-1), p);
 
-        if abs(cka(1)) > 20
+        if abs(cka(1)) > 10
             cka = 0;
         end
         if abs(uka) > 100
@@ -171,7 +171,9 @@ for k = 1 : Time_out/TsFast
     
     u_lq(k) = -K_opt*xhat(:, k0);
     
-    x(:, k+1) = (sysd.A + nWidth*rand(4) - bias*nWidth*ones(4))*x(:, k) + sysd.B*uk + w;
+    Ad = sysd.A + nWidth*rand(4) - bias*nWidth*ones(4);
+        
+    x(:, k+1) = Ad*x(:, k) + sysd.B*uk + w;
     y(:, k+1) = sysd.C*x(:, k+1) + v;
      
 end
