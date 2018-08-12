@@ -9,11 +9,11 @@ Time_out = 30;
 % save in s the current random noise generator
 s = 'default';
 
-% Run Adaptive Control algorithm
-[yAdapt, uAdapt, ~, yhatAdapt, ~] = AdaptiveMPCsim(bias, Time_out, nWidth, s);
+% Run Adaptive MPC FIR algorithm
+[yAdapt, uAdapt, ~, yhatAdapt, ~] = AdaptiveMPCsimFIR(bias, Time_out, nWidth, s);
 
-% Run MPC algorithm
-[yMPC, uMPC, t1, yhatMPC, main_bounds] = MPCsim(bias, Time_out, nWidth, s);
+% Run MPC FIR algorithm
+[yMPC, uMPC, t1, yhatMPC, main_bounds] = MPCsimFIR(bias, Time_out, nWidth, s);
 
 toc
 %% Count the Violations

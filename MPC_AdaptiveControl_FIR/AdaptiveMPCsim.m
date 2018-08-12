@@ -124,7 +124,7 @@ for k = 1 : Time_out/TsFast
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     bnds = [0.8, 1.5, 40]';
     if k > adaptTime  && k / ratioTs == round(k/ratioTs)
-        if k/100 == round(k/100)
+        if k/25 == round(k/25)
 
             % Xp = getState_n_4(y(:, 1:k-1), u(:, 1:k-1), PhiP2, Bp2, Cp2);
 
@@ -162,7 +162,7 @@ for k = 1 : Time_out/TsFast
     v =  varV*rand(2, 1);
     v(2) = v(2)*0.1; 
     
-    sysd = inverted_pen_T_model(TsFast, M0, m0);
+    sysd = inverted_pen_T_model(TsFast, M, m);
     % use the MPC output value
     Ck(k) = c;
     

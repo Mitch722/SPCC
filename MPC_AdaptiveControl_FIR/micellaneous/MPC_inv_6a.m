@@ -6,9 +6,8 @@
 % added Algo 1 for cart position
 % Run Algo 1 on the cart angle
 % variable Variance after k = 1000;
-% finite size on algo 1 data
 % gather confidences of algo 1 on both x and phi
-tic
+
 [sys_obv, L, K_opt] = inverted_pen;
 
 A = sys_obv.A;
@@ -27,13 +26,13 @@ Ts = sys_obv.Ts;
 % z(k+i|k) = psi^i * z(k|k)
 
 % horizon window length
-p = 2;
+p = 5;
 
 Q = C'*C;
 R = 1;
 % bounds on 
 % main_bounds = [x, phi, u]
-main_bounds = [0.8, 0.15, 0.4]';
+main_bounds = [1, 0.2, 1]';
 % bounds = [bounds; bounds];
 
 %% 
@@ -52,8 +51,6 @@ x2 = x;
 y2 = y;
 
 Ck = zeros(1, Time_out/Ts);
-uMPC = Ck;
-uUBmpc = uMPC;
 
 X = x(:, 1);
 maxF = 100;
@@ -63,43 +60,40 @@ maxF = 100;
 b1_inter = zeros(1, Time_out/Ts);
 b2_inter = zeros(1, Time_out/Ts);
 
-% preallocate the confidence of algorithm1
 confid = b1_inter;
 confid2 = confid;
 
 for k = 1: (Time_out/Ts)-1 
     
     % Run algo 1 to update bounds
-    no_algo_1 = 200;
-    
-    if k > no_algo_1
+    if k >= 200
         
         % Run algo1 on the cart position
         ey = struct;
         ey_inter = [zeros(2, 4), C(:, 1:4)]*x(:, 1:k );
         
-        ey.sample = ey_inter(1, k - no_algo_1: k);
+        ey.sample = ey_inter(1, :);
         ey.dim = 2;
         
         [r_star, Ptrail, Ntrail, q_min, q_max] = algo1(ey, ep_lo, ep_hi, Ppor, Ppst);
         [x_hat, q_hat] = algo1_return(ey, Ntrail, q_min, q_max);
         
         b1_inter(k) = x_hat(2, 1);
-        % find the confidence of algorithm 1
+        % find confidence of algo 1 on cart pos.
         m = length(ey.sample);
         confid(k) = binocdf(q_hat - 1, m, 1 - (q_hat/m));
         
         % Run Algo1 on the angle phi
         ephi = struct;
         
-        ephi.sample = ey_inter(2, k - no_algo_1: k);
+        ephi.sample = ey_inter(2, :);
         ephi.dim = 2;
         
         [r_star2, Ptrail2, Ntrail2, q_min2, q_max2] = algo1(ephi, ep_lo, ep_hi, Ppor, Ppst);
         [x_hat2, q_hat2] = algo1_return(ephi, Ntrail2, q_min2, q_max2);
         
         b2_inter(k) = x_hat2(2, 1);
-        % find confidence of algorithm2
+        % find confidence of algo 1 on phi
         m = length(ephi.sample);
         confid2(k) = binocdf(q_hat2 - 1, m, 1 - (q_hat2/m));
         
@@ -119,7 +113,7 @@ for k = 1: (Time_out/Ts)-1
     c = ck(1);
     end
     
-    if k > 500 && k < 1200
+    if k > 500 && k < 1300
         varW = 0.01;
         varV = 0.01;
     
@@ -137,64 +131,50 @@ for k = 1: (Time_out/Ts)-1
     x(:, k+1) = A*x(:, k) + B*c + w;
     y(:, k) = C*x(:, k) + v;
     
-    X = x(:, k+1);
+    X = x(:, k);
     
     x2(:, k+1) = A*x2(:, k) + w;
     y2(:, k) = C*x2(:, k) + v;
     
-    X2 = x2(:, k+1);
     
     Ck(k) = c;
-    
-    uMPC(k)   = K_opt*X(1:4, 1) + c;
-    uUBmpc(k) = K_opt*X2(1:4, 1);
-    
 end
 
 %%
 figure
-plot(y(1, :), 'b')
+plot(y(1, :))
 hold on
-plot(y2(1, :), 'r');
+plot(y2(1, :));
 grid on
 
 stairs(main_bounds(1) - b1_inter, 'k')
 stairs(-main_bounds(1) + b1_inter, 'k')
 
 title('Cart Position MPC vs LQR')
-xlabel('Time Steps')
-ylabel('Cart Position from Centre')
+
 
 figure
-plot(y(2, :), 'b')
+plot(y(2, :))
 hold on
-plot(y2(2, :), 'r');
+plot(y2(2, :));
 
 stairs(main_bounds(2) - b2_inter, 'k')
 stairs(-main_bounds(2) + b2_inter, 'k')
 
 grid on
 title('Angle of Pendulum phi')
-xlabel('Time Steps')
-ylabel('Angle phi of Pendulum')
 
 figure
-stairs(Ck, 'b')
+stairs(Ck)
 
 grid on
 title('Reference Input MPC')
 
-figure 
-stairs(uUBmpc, 'b')
-grid on 
-title('Input uk, MPC')
-axis([0 inf -11 11])
+
+%% Plot confidences of controller as 
 
 figure
-stairs(uMPC, 'r')
-grid on
-title('Input uk, LQG')
-axis([0 inf -11 11])
+plot(confid)
 
-
-toc
+figure 
+plot(confid2)

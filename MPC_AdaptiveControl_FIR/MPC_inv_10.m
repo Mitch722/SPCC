@@ -8,6 +8,8 @@
 % variable Variance after k = 1000;
 % finite size on algo 1 data
 % gather confidences of algo 1 on both x and phi
+% Replace quadprog with mpcqpsolver
+
 tic
 [sys_obv, L, K_opt] = inverted_pen;
 
@@ -43,7 +45,7 @@ ep_hi = 0.10;
 Ppor = 0.9;
 Ppst = 0.95;
 
-%%
+%% prepare MPC 
 Time_out = 20;
 x = zeros(no_states, Time_out/Ts);
 y = zeros(no_outputs, Time_out/Ts);
@@ -52,13 +54,17 @@ x2 = x;
 y2 = y;
 
 Ck = zeros(1, Time_out/Ts);
-uMPC = Ck;
-uUBmpc = uMPC;
 
 X = x(:, 1);
 maxF = 100;
 
-[H, f, Ac, Ax, b1, lb, ub, options] = MPC_vars(A, B, C, K_opt, R, p, main_bounds, maxF);
+[H, f, Ac, Ax, b1, lb, ub, opt] = MPC_vars(A, B, C, K_opt, R, p, main_bounds, maxF);
+% cholesky for mpcqpsolver
+[L2, ~] = chol(H,'lower');
+Linv = inv(L2);
+
+% options for mpcqpsolver:
+options = mpcqpsolverOptions;
 
 b1_inter = zeros(1, Time_out/Ts);
 b2_inter = zeros(1, Time_out/Ts);
@@ -67,8 +73,13 @@ b2_inter = zeros(1, Time_out/Ts);
 confid = b1_inter;
 confid2 = confid;
 
+fprintf('Progress:')
 for k = 1: (Time_out/Ts)-1 
     
+    % progress bar
+    if k/100 == round(k/100)
+       fprintf('#') 
+    end
     % Run algo 1 to update bounds
     no_algo_1 = 200;
     
@@ -111,7 +122,9 @@ for k = 1: (Time_out/Ts)-1
     
     b = b1 + b2_algo1 + Ax*X;
     
-    ck = quadprog(H, f, -Ac, -b, [], [], lb, ub, [], options);
+    % [x,status] = mpcqpsolver(Linv,f,A,b,Aeq,beq,iA0,options)
+    ck = mpcqpsolver(Linv, zeros(2, 1), Ac, b, [], zeros(0,1), false(size(b)), options);
+    % ck = quadprog(H, f, -Ac, -b, [], [], lb, ub, [], options);
     
     if isempty(ck)
         c = 0;
@@ -137,25 +150,21 @@ for k = 1: (Time_out/Ts)-1
     x(:, k+1) = A*x(:, k) + B*c + w;
     y(:, k) = C*x(:, k) + v;
     
-    X = x(:, k+1);
+    X = x(:, k);
     
     x2(:, k+1) = A*x2(:, k) + w;
     y2(:, k) = C*x2(:, k) + v;
     
-    X2 = x2(:, k+1);
     
     Ck(k) = c;
-    
-    uMPC(k)   = K_opt*X(1:4, 1) + c;
-    uUBmpc(k) = K_opt*X2(1:4, 1);
-    
 end
 
+fprintf('\n')
 %%
 figure
-plot(y(1, :), 'b')
+plot(y(1, :))
 hold on
-plot(y2(1, :), 'r');
+plot(y2(1, :));
 grid on
 
 stairs(main_bounds(1) - b1_inter, 'k')
@@ -166,9 +175,9 @@ xlabel('Time Steps')
 ylabel('Cart Position from Centre')
 
 figure
-plot(y(2, :), 'b')
+plot(y(2, :))
 hold on
-plot(y2(2, :), 'r');
+plot(y2(2, :));
 
 stairs(main_bounds(2) - b2_inter, 'k')
 stairs(-main_bounds(2) + b2_inter, 'k')
@@ -179,22 +188,9 @@ xlabel('Time Steps')
 ylabel('Angle phi of Pendulum')
 
 figure
-stairs(Ck, 'b')
+stairs(Ck)
 
 grid on
 title('Reference Input MPC')
-
-figure 
-stairs(uUBmpc, 'b')
-grid on 
-title('Input uk, MPC')
-axis([0 inf -11 11])
-
-figure
-stairs(uMPC, 'r')
-grid on
-title('Input uk, LQG')
-axis([0 inf -11 11])
-
 
 toc

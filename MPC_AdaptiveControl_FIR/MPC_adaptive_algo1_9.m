@@ -1,12 +1,9 @@
-function [y, u, t1, yhat, main_bounds] = AdaptiveMPCsim(bias, Time_out, nWidth, s)
-
 % Run simulation with varying time Dynamics
 
 TsFast = 0.005;
+Time_out = 15;
 
 TsObvs = 0.01;
-
-rng(s);
 %% Define the Observer
 M0 = 1.5;   M = M0;
 m0 = 0.2;   m = m0;
@@ -24,22 +21,27 @@ Q = C'*C;
 R = 1;
 
 % main_bounds = [x, phi, u]
-main_bounds = [0.8, 0.15, 40]';
+main_bounds = [0.8, 0.15, 0.4]';
 
 ratioTs = TsObvs / TsFast;
 %% Initialise the variable masses
 x = zeros(4, Time_out/TsFast);
 y = zeros(2, Time_out/TsFast);
 
+x2 = x;
+y2 = y;
+
 xhat = zeros(4, Time_out/TsObvs);
 yhat = zeros(2, Time_out/TsObvs);
 
 u = x(1, :);
 u_adapt = u;
-u_lq = u;
+
+uobvs = u;
 
 Ck = zeros(1, Time_out/TsFast);
-c = 0;
+Ckobvs = Ck;
+cobvs = 0;
 
 maxF = 100;
 
@@ -62,8 +64,8 @@ for k = 1 : Time_out/TsFast
         
         k0 = k/ ratioTs;
         
-        varW = 0.0051;
-        varV = 0.0051;
+        varW = 0.01;
+        varV = 0.01;
         w =  varW*randn(4, 1);
         w(3) = w(3)*0.1 + varV*rand(1, 1) - 0.5*varV;
         v =  varV*rand(2, 1);
@@ -76,17 +78,16 @@ for k = 1 : Time_out/TsFast
         
         b = b1 + Ax*X;
         
-        if k <= adaptTime - 1
-            % [x,status] = mpcqpsolver(Linv,f,A,b,Aeq,beq,iA0,options)
-            ck = mpcqpsolver(Linv, f, Ac, b, [], zeros(0,1), false(size(b)), options);
-            % ck = quadprog(H, f, -Ac, -b, [], [], lb, ub, [], options);
+        % [x,status] = mpcqpsolver(Linv,f,A,b,Aeq,beq,iA0,options)
+        ckMPC = mpcqpsolver(Linv, f, Ac, b, [], zeros(0,1), false(size(b)), options);
+        % ck = quadprog(H, f, -Ac, -b, [], [], lb, ub, [], options);
 
-            if isempty(ck) || abs(ck(1)) > 10
-                c = 0;
-            else
-                c = ck(1);
-            end
+        if isempty(ckMPC) || abs(ckMPC(1)) > 20
+            cobvs = 0;  % 10*ck(1)/abs(ck(1));
+        else
+            cobvs = ckMPC(1);
         end
+
     end       
     % Initialise Adaptive Control
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
@@ -106,9 +107,9 @@ for k = 1 : Time_out/TsFast
 
         PhiP2 = Ap2 - Bp2*Kp2;
         % generate the states for the parameter estimation
-        % Xp = getState_n_4(y(:, 1:k-1), u(:, 1:k-1), PhiP2, Bp2, Cp2);
+        Xp = getState_n_4(y(:, 1:k-1), u(:, 1:k-1), PhiP2, Bp2, Cp2);
         
-        bnds = [0.8, 1.5, 40]';
+        bnds = [0.8, 1.5, 0.4]';
         
         [Q_bar, ~, ~, ~, ~, ~, ~, ~] = MPC_vars(PhiP2, Bp2, Cp2, Kp2, R, p, bnds, maxF);
 
@@ -117,31 +118,31 @@ for k = 1 : Time_out/TsFast
         
         params.m = 4;
         params.n = 10;
-        [~, Mmodels, RstarModel, entry] = ACSA_1(M_samps, y(:, 1:k-1), u(:, 1:k-1), p, params, Q_bar, bnds);
+        [~, Mmodels, RstarModel, entry] = ACSA_1(M_samps, y(:, 1:k-1), u(:, 1:k-1), p, params, Q_bar, bnds, Xp);
 
     end
     % Adaptive Control run at k0 intervals
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    bnds = [0.8, 1.5, 40]';
-    if k > adaptTime  && k / ratioTs == round(k/ratioTs)
-        if k/100 == round(k/100)
+    bnds = [0.8, 1.5, 20]';
+    if k > adaptTime && k / ratioTs == round(k/ratioTs)
+        if k/25 == round(k/25)
 
-            % Xp = getState_n_4(y(:, 1:k-1), u(:, 1:k-1), PhiP2, Bp2, Cp2);
+            Xp = getState_n_4(y(:, 1:k-1), u(:, 1:k-1), PhiP2, Bp2, Cp2);
 
-            [~, Mmodels, RstarModel, entry] = ACSA_1(M_samps, y(:, 1:k-1), u(:, 1:k-1), p, params, Q_bar, bnds);
+            [~, Mmodels, RstarModel, entry] = ACSA_1(M_samps, y(:, 1:k-1), u(:, 1:k-1), p, params, Q_bar, bnds, Xp);
             [noItems, noRstar] = size(RstarModel);
             % recalculate an average model
             PhiP2 = (1/noRstar)*sum(cat(3, RstarModel{entry.PhiP, :}), 3 );
             Bp2 = (1/noRstar)*sum(cat(3, RstarModel{entry.Bp, :}), 3 );
             Cp2 = (1/noRstar)*sum(cat(3, RstarModel{entry.Cp, :}), 3 );
-            [Q_bar, ~, ~, ~, ~, ~, ~, ~] = MPC_vars(PhiP2, Bp2, Cp2, Kp2, R, p, bnds, maxF);
+            
         end
         % genereate the states from set RstarModel
         % generate uk = [Kopt1, ... Kopti, ... KoptR]*[Xp1,...XpR]' + ck
         
         [uka, cka] = RmodelOutput(Q_bar, RstarModel, entry, y(:, 1:k-1), u(:, 1:k-1), p);
 
-        if abs(cka(1)) > 10
+        if abs(cka(1)) > 20
             cka = 0;
         end
         if abs(uka) > 100
@@ -155,26 +156,33 @@ for k = 1 : Time_out/TsFast
     M = M - 0.01*TsFast*M + 0.001*TsFast*randn(1,1);
     m = m - 0.01*TsFast*m + 0.001*TsFast*randn(1,1);
     
-    varW = 0.0051;
-    varV = 0.0051;
+    varW = 0.01;
+    varV = 0.01;
     w =  varW*randn(4, 1);
     w(3) = w(3)*0.1 + varV*rand(1, 1) - 0.5*varV;
     v =  varV*rand(2, 1);
     v(2) = v(2)*0.1; 
     
-    sysd = inverted_pen_T_model(TsFast, M0, m0);
+    sysd = inverted_pen_T_model(TsFast, M, m);
     % use the MPC output value
-    Ck(k) = c;
+    if k > adaptTime
+        Ck(k) = c;
+    else
+        Ck(k) = cobvs;
+    end
+    
+    Aphys = sysd.A + 0.001*rand(4) - 0.5*0.001*ones(4);
     
     uk = -K_opt*xhat(:, k0) + Ck(k); 
     u(k) = uk;
-    
-    u_lq(k) = -K_opt*xhat(:, k0);
-    
-    Ad = sysd.A + nWidth*rand(4) - bias*nWidth*ones(4);
-        
-    x(:, k+1) = Ad*x(:, k) + sysd.B*uk + w;
+    x(:, k+1) = Aphys*x(:, k) + sysd.B*uk + w;
     y(:, k+1) = sysd.C*x(:, k+1) + v;
+    
+    ukobvs = -K_opt*xhat(:, k0) + cobvs;
+    Ckobvs(k) = cobvs;
+    
+    x2(:, k+1) = Aphys*x2(:, k) + sysd.B*ukobvs + w;
+    y2(:, k+1) = sysd.C*x2(:, k+1) + v;
      
 end
 
@@ -187,7 +195,7 @@ t2 = linspace(0, Time_out, length(yhat(1, :)));
 
 plot(t1, y(1, :), 'b')
 hold on
-% plot(t2, yhat(1, :));
+plot(t1, y2(1, :), 'r');
 grid on
 
 stairs([0, Time_out], [main_bounds(1), main_bounds(1)], 'k')
@@ -200,7 +208,7 @@ ylabel('Cart Position from Centre')
 figure
 plot(t1, y(2, :), 'b')
 hold on
-% plot(t2, yhat(2, :));
+plot(t1, y2(2, :), 'r');
 
 stairs([0, Time_out], [main_bounds(2), main_bounds(2)], 'k')
 stairs([0, Time_out], [-main_bounds(2), -main_bounds(2)], 'k')
@@ -215,3 +223,14 @@ stairs(u)
 
 grid on
 title('Reference Input MPC')
+
+figure 
+subplot(2,2,1); plot(t1, y(1, :)); title('Cart Position Adaptive Control');
+grid on 
+subplot(2,2,2); plot(t1, y2(1, :)); title('Cart Position MPC')
+grid on
+subplot(2,2,3); plot(t1, y(2, :)); title('Angle phi Adaptive Control');
+grid on
+subplot(2,2,4); plot(t1, y2(2, :)); title('Angle phi MPC')
+grid on
+

@@ -52,8 +52,6 @@ x2 = x;
 y2 = y;
 
 Ck = zeros(1, Time_out/Ts);
-uMPC = Ck;
-uUBmpc = uMPC;
 
 X = x(:, 1);
 maxF = 100;
@@ -142,13 +140,8 @@ for k = 1: (Time_out/Ts)-1
     x2(:, k+1) = A*x2(:, k) + w;
     y2(:, k) = C*x2(:, k) + v;
     
-    X2 = x2(:, k+1);
     
     Ck(k) = c;
-    
-    uMPC(k)   = K_opt*X(1:4, 1) + c;
-    uUBmpc(k) = K_opt*X2(1:4, 1);
-    
 end
 
 %%
@@ -179,22 +172,9 @@ xlabel('Time Steps')
 ylabel('Angle phi of Pendulum')
 
 figure
-stairs(Ck, 'b')
+stairs(Ck)
 
 grid on
 title('Reference Input MPC')
-
-figure 
-stairs(uUBmpc, 'b')
-grid on 
-title('Input uk, MPC')
-axis([0 inf -11 11])
-
-figure
-stairs(uMPC, 'r')
-grid on
-title('Input uk, LQG')
-axis([0 inf -11 11])
-
 
 toc

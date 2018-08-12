@@ -133,7 +133,7 @@ title('Angle phi Adaptive')
 xlabel('Time/s')
 ylabel('Angle phi of Pendulum')
 
-axis([0 30 -0.5 0.9])
+axis([0 30 -0.4 0.4])
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 figure
@@ -147,7 +147,7 @@ title('Angle phi MPC')
 xlabel('Time/s')
 ylabel('Angle phi of Pendulum')
 
-axis([0 30 -0.5 0.9])
+axis([0 30 -0.4 0.4])
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 figure

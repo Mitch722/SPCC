@@ -1,4 +1,4 @@
-function [y, u, t1, yhat, main_bounds] = AdaptiveMPCsim(bias, Time_out, nWidth, s)
+function [y, u, t1, yhat, main_bounds] = MPCsimFIR(bias, Time_out, nWidth, s)
 
 % Run simulation with varying time Dynamics
 
@@ -88,67 +88,33 @@ for k = 1 : Time_out/TsFast
             end
         end
     end       
-    % Initialise Adaptive Control
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
-    
-    if k == adaptTime - 1
-        % Try statement 
-        
-        params.m = 4;
-        params.n = 100 - params.m;
-        % params.Ts = Ts;
-
-        [~, ~, P, ~] = least_squares_params(y(:, 1: k-1), u(:, 1:k-1), params.n, params.m);
-
-        [Ap2, Bp2, Cp2] = estSS(P, params.m);
-
-        Kp2 = dlqr(Ap2,Bp2,Cp2'*Cp2,1,0);
-
-        PhiP2 = Ap2 - Bp2*Kp2;
-        % generate the states for the parameter estimation
-        % Xp = getState_n_4(y(:, 1:k-1), u(:, 1:k-1), PhiP2, Bp2, Cp2);
-        
-        bnds = [0.8, 1.5, 40]';
-        
-        [Q_bar, ~, ~, ~, ~, ~, ~, ~] = MPC_vars(PhiP2, Bp2, Cp2, Kp2, R, p, bnds, maxF);
-
-        % This would be threaded used to generate RStarModels
-        M_samps = 90;
-        
-        params.m = 4;
-        params.n = 10;
-        [~, Mmodels, RstarModel, entry] = ACSA_1(M_samps, y(:, 1:k-1), u(:, 1:k-1), p, params, Q_bar, bnds);
-
-    end
-    % Adaptive Control run at k0 intervals
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    bnds = [0.8, 1.5, 40]';
+    bnds = [0.8, 1.5]';
     if k > adaptTime  && k / ratioTs == round(k/ratioTs)
-        if k/100 == round(k/100)
-
-            % Xp = getState_n_4(y(:, 1:k-1), u(:, 1:k-1), PhiP2, Bp2, Cp2);
-
-            [~, Mmodels, RstarModel, entry] = ACSA_1(M_samps, y(:, 1:k-1), u(:, 1:k-1), p, params, Q_bar, bnds);
-            [noItems, noRstar] = size(RstarModel);
-            % recalculate an average model
-            PhiP2 = (1/noRstar)*sum(cat(3, RstarModel{entry.PhiP, :}), 3 );
-            Bp2 = (1/noRstar)*sum(cat(3, RstarModel{entry.Bp, :}), 3 );
-            Cp2 = (1/noRstar)*sum(cat(3, RstarModel{entry.Cp, :}), 3 );
-            [Q_bar, ~, ~, ~, ~, ~, ~, ~] = MPC_vars(PhiP2, Bp2, Cp2, Kp2, R, p, bnds, maxF);
-        end
-        % genereate the states from set RstarModel
-        % generate uk = [Kopt1, ... Kopti, ... KoptR]*[Xp1,...XpR]' + ck
         
-        [uka, cka] = RmodelOutput(Q_bar, RstarModel, entry, y(:, 1:k-1), u(:, 1:k-1), p);
-
-        if abs(cka(1)) > 10
-            cka = 0;
+        k0 = k/ ratioTs;
+        % take input and outputs and build 2 FIR models
+        nFIR = 5;
+        mFIR = p+5;
+        % build FIR coefficients
+        Fy = buildFIR(y(1, 1:k), u(1:k), nFIR, mFIR);
+        Fp = buildFIR(y(2, 1:k), u(1:k), nFIR, mFIR);       
+        % put the two coefs together
+        Ffir = [Fy'; Fp'];
+        
+        [H2, f, Ac2, Ax2, b2, lb, ub, op] = MPC_varsFIR(A-B*K_opt, B, C, K_opt, R, p, bnds, maxF, Ffir);
+        [L21, ~] = chol(H2,'lower');
+        Linv1 = inv(L21);
+        
+        X = xhat(:, k0);
+        b = b2 + Ax2*X;
+                
+        ck = mpcqpsolver(Linv1, f, Ac2, b, [], zeros(0,1), false(size(b)), options);
+        if isempty(ck) || abs(ck(1)) > 10
+            c = 0;
+        else
+            c = ck(1);
         end
-        if abs(uka) > 100
-            uka = 20*uka/abs(uka);
-        end
-        c = cka(1);
-        u_adapt(k) = uka;
     end    
     % Physical Model
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -162,7 +128,7 @@ for k = 1 : Time_out/TsFast
     v =  varV*rand(2, 1);
     v(2) = v(2)*0.1; 
     
-    sysd = inverted_pen_T_model(TsFast, M0, m0);
+    sysd = inverted_pen_T_model(TsFast, M, m);
     % use the MPC output value
     Ck(k) = c;
     
@@ -215,3 +181,4 @@ stairs(u)
 
 grid on
 title('Reference Input MPC')
+end

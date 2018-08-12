@@ -3,7 +3,7 @@ tic
 % Bias on the Model variance
 bias = 0.5;
 % noise width for the uniform dist
-nWidth = 0.053;
+nWidth = 0.05;
 % Time out time
 Time_out = 30;
 % save in s the current random noise generator
