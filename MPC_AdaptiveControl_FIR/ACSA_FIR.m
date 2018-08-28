@@ -1,4 +1,4 @@
-function [ck, Mmodels, RstarModel, entry] = ACSA_FIR(M, y, u, p, R, params, Q_bar, bnds, Phi, B, C, K_opt, xhat)
+function [ck, Mmodels, RstarModel, entry, no_coefs, H] = ACSA_FIR(M, y, u, p, params, bnds, Phi, B, C, K_opt)
 
 
 % check that there is enough data
@@ -12,11 +12,11 @@ m = params.m;
 seglen = n + m + 1;
 %%  Run algorithm 1 to gather relative data
 % Scenario approach 
-ep_lo = 0.05;
-ep_hi = 0.10;
+ep_lo = 0.10;
+ep_hi = 0.20;
 
-Ppor = 0.75;
-Ppst = 0.80;
+Ppor = 0.80;
+Ppst = 0.85;
 
 x.dim = 1;
 x.sample = zeros(2, M);
@@ -42,6 +42,12 @@ entry.Dx = 3;
 entry.b0 = 4;
 entry.bigFIR = 5;
 
+model.A = Phi;
+model.B = B;
+model.C = C;
+model.K_opt = K_opt;
+
+
 for i = 1: M
     
     % initialise the last n + m data, seglen = n+m+1
@@ -57,12 +63,14 @@ for i = 1: M
     Fp = buildFIR(y_data(2, :), u_data, n, m);
     % put the two coefs together
     Ffir = [Fy'; Fp'];
+    Ffir = fliplr(Ffir);
     % Store the FIR coefficients cell array
     Mmodels{entry.Ffir, i} = Ffir;
     Mmodels{entry.bigFIR, i} = ConvFIRmat(Ffir, p);
     
     % FIR constraints
-    [~, ~, Dc, Dx, b0, ~, ~, ~] = MPC_varsFIR(Phi, B, C, K_opt, R, p, bnds, 100, Ffir);
+    [b0, Dx, Dc, no_coefs, H] = MPC_FIR_ck(model, Ffir, p, bnds);
+   
     Mmodels{entry.Dc, i} = Dc;
     Mmodels{entry.Dx, i} = Dx;
     Mmodels{entry.b0, i} = b0;
@@ -85,10 +93,13 @@ sampleModels = Mmodels(:, random_entries);
 cStar = cell(2, Ntrial);
 % MPC references
 % make 
-[L2, ~] = chol(Q_bar, 'lower');
+[L2, ~] = chol(H, 'lower');
 Linv = inv(L2);
 % options for mpcsolver
 options = mpcqpsolverOptions;
+% last few steps from reference-input Ck
+chat = u(:, end-no_coefs+1:end)';
+assert(length(chat(:,1))==no_coefs, 'The above line is incorrect and probs has one extra coeficient')
 
 for i = 1 : Ntrial
     Dc0 = (i-1)*rstar + 1;
@@ -106,7 +117,7 @@ for i = 1 : Ntrial
 %     Xp = sampleModels(entry.Xp, Ac0: Ac1)';
 %     Xp = cell2mat(Xp);
     
-    b = b1 + Dx*xhat;
+    b = b1 + Dx*chat;
     % solve the quadprog for c
     c = mpcqpsolver(Linv, zeros(p, 1), Dc, b, [], zeros(0,1), false(size(b)), options);
     cStar{1, i} = c;
@@ -123,23 +134,21 @@ totalNoViol = 2*p*(M-rstar);
 % a stacked vector of Uk inputs
 Ds = vecUk(Phi, B, K_opt, p);
 % Uk = Ds * zk;
-% find the number of violations
+%% Find the number of violations
 for i = 1: Ntrial 
    
    % px1 vector if input references 
    ck = cStar{1, i};
    % initial state plus 
-   zk = [xhat; ck];
-   % vector of Uk
-   Uk = Ds*zk;
-      
+   zk = ck;
+         
    rModels = rStarModels;
    rModels(:, rStarSubSamps(1, :)) = []; 
    
    bigF = rModels(entry.bigFIR, :)';
    bigFmat = cell2mat(bigF);
    
-   yFir = bigFmat*Uk;
+   yFir = bigFmat*zk;
    
    bndlims = repmat(bnds, length(yFir)/length(bnds), 1);
    

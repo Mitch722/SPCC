@@ -87,7 +87,8 @@ for k = 1 : Time_out/TsFast
                 c = ck(1);
             end
         end
-    end       
+    end
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
     % Initialise Adaptive Control
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
     % bounds
@@ -95,39 +96,48 @@ for k = 1 : Time_out/TsFast
     k0 = round(k/ ratioTs);    % controller step
     X = xhat(:, k0);    % current state estimate
     % parameters for FIR models
-    params.n = 5;       % no. of parameters
+    params.n = 10;       % no. of parameters
     params.m = params.n+5;    % no. rows 
-    M_samps = 90;       % no. of models in multi-sample
-    
+    M_samps = 55;       % no. of models in multi-sample
+    p = 30;
+        
     if k == adaptTime - 1
         % Try statement 
-        [~, ~, RstarModel, entry] = ACSA_FIR(M_samps, y(:, 1:k-1), u(:, 1:k-1), p, R, params, H, bnds, A-B*K_opt, B, C, K_opt, X);      
+        [~, ~, RstarModel, entry, no_coefs, H1] = ACSA_FIR(M_samps, y(:, 1:k-1), Ck(:, 1:k-1), p, params, bnds, A-B*K_opt, B, C, K_opt);      
         
     end
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
     % Adaptive Control run at k0 intervals
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     if k > adaptTime  && k / ratioTs == round(k/ratioTs)
-               
+        % feed in the previous state
+        Xprev = xhat(:, k0-params.n);
         if k/25 == round(k/25)
             % selects new constraints
-            [~, ~, RstarModel, entry] = ACSA_FIR(M_samps, y(:, 1:k-1), u(:, 1:k-1), p, R, params, H, bnds, A-B*K_opt, B, C, K_opt, X);
+            [~, ~, RstarModel, entry, no_coefs, H1] = ACSA_FIR(M_samps, y(:, 1:k-1), Ck(:, 1:k-1), p, params, bnds, A-B*K_opt, B, C, K_opt);
                        
         end   
-        % average the FIR big matrices
-        % sum them first 
-        % concatonate the matrices into a 3d matrix
-        threedFfir = cat(3, RstarModel{entry.bigFIR, :});
-        % add up the matrices in the 
-        aveFir = sum(threedFfir, 3)/length(threedFfir(1,1,:));
+%         % average the FIR big matrices
+%         % sum them first 
+%         % concatonate the matrices into a 3d matrix
+%         threedFfir = cat(3, RstarModel{entry.bigFIR, :});
+%         % add up the matrices in the 
+%         aveFir = sum(threedFfir, 3)/length(threedFfir(1,1,:));
+%         aveFir = fliplr(aveFir);
         
-        [H2, f, Dc2, Dx2, b2, lb, ub, op] = MPC_varsFIR(A-B*K_opt, B, C, K_opt, R, p, bnds, maxF, aveFir);
-        [L21, ~] = chol(H2,'lower');
+        b2 = cell2mat(RstarModel(entry.b0, :)');
+        Dc2 = cell2mat(RstarModel(entry.Dc, :)');
+        Dx2 = cell2mat(RstarModel(entry.Dx, :)');
+        
+%         [H2, f, Dc2, Dx2, b2, lb, ub, op] = MPC_varsFIR(A-B*K_opt, B, C, K_opt, R, p, bnds, maxF, aveFir);
+        [L21, ~] = chol(H1,'lower');
         Linv1 = inv(L21);
-        
-        X = xhat(:, k0);
-        b = b2 + Dx2*X;
+        no_coefs = params.n;
+        % X = xhat(:, k0);
+        chat = Ck(k-no_coefs:k-1)';
+        b = b2 + Dx2*chat;
                 
-        ck = mpcqpsolver(Linv1, f, Dc2, b, [], zeros(0,1), false(size(b)), options);
+        ck = mpcqpsolver(Linv1, zeros(length(Linv1), 1), Dc2, b, [], zeros(0,1), false(size(b)), options);
         if isempty(ck) || abs(ck(1)) > 10
             c = 0;
         else
@@ -148,9 +158,15 @@ for k = 1 : Time_out/TsFast
     
     sysd = inverted_pen_T_model(TsFast, M, m);
     % use the MPC output value
-    Ck(k) = c;
+    Ck(k) = c+0.01*randn(1,1);
     
     uk = -K_opt*xhat(:, k0) + Ck(k); 
+    
+    % limit on uk
+    if abs(uk) > 100
+        uk = 100 * abs(uk)/uk;
+    end
+    
     u(k) = uk;
     
     u_lq(k) = -K_opt*xhat(:, k0);

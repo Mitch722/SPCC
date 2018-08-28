@@ -1,0 +1,8 @@
+A = [0 1; -2 -3];
+
+% define unknown matrix to be found using LMI
+setlmis([])
+P = lmivar(1, [size(A, 1) 1]);  % structure and size of LMI
+
+% def LMI
+limiterm([1 1 1 P], 1 , A
