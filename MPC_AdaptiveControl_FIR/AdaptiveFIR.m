@@ -1,4 +1,4 @@
-function [y, u, t1, yhat, main_bounds] = AdaptiveMPCsimFIR(bias, Time_out, nWidth, s)
+function [y, u, t1, yhat, main_bounds, StateFlush] = AdaptiveFIR(bias, Time_out, nWidth, s)
 
 % Run simulation with varying time Dynamics
 
@@ -37,6 +37,7 @@ yhat = zeros(2, Time_out/TsObvs);
 u = x(1, :);
 u_adapt = u;
 u_lq = u;
+StateFlush = x(1, :);
 
 Ck = zeros(1, Time_out/TsFast);
 c = 0;
@@ -53,7 +54,7 @@ options = mpcqpsolverOptions;
 
 adaptTime = 1500;
 %%
-k0 = 1;
+
 for k = 1 : Time_out/TsFast
         
     % Observer
@@ -80,7 +81,7 @@ for k = 1 : Time_out/TsFast
             % [x,status] = mpcqpsolver(Linv,f,A,b,Aeq,beq,iA0,options)
             ck = mpcqpsolver(Linv, f, Ac, b, [], zeros(0,1), false(size(b)), options);
             % ck = quadprog(H, f, -Ac, -b, [], [], lb, ub, [], options);
-
+            
             if isempty(ck) || abs(ck(1)) > 10
                 c = 0;
             else
@@ -100,41 +101,106 @@ for k = 1 : Time_out/TsFast
     params.m = params.n+5;    % no. rows 
     M_samps = 55;       % no. of models in multi-sample
     p = 30;
-        
+    
+               
     if k == adaptTime - 1
         % Try statement 
-        [~, ~, RstarModel, entry, no_coefs, H1] = ACSA_FIR(M_samps, y(:, 1:k-1), Ck(:, 1:k-1), p, params, bnds, A-B*K_opt, B, C, K_opt);      
+        [~, ~, RstarModel, entry, ~, H1] = ACSA_FIR(M_samps, y(:, 1:k-1), Ck(:, 1:k-1), p, params, bnds, A-B*K_opt, B, C, K_opt);      
+        k_init = k;
+        flush_state = 0;
+        flush_len = 1000;
+        % Find MPC input/output correlation
+        CorrX = xcorr(y(1, k-flush_len:k-1), u(k-flush_len:k-1));
+        CorrPhi = xcorr( xcorr(y(2, k-flush_len:k-1), u(k-flush_len:k-1)));
         
+        maxCorrMPC = max(abs([CorrX, CorrPhi]));
     end
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
     % Adaptive Control run at k0 intervals
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     if k > adaptTime  && k / ratioTs == round(k/ratioTs)
-        % feed in the previous state
-        Xprev = xhat(:, k0-params.n);
-        if k/25 == round(k/25)
-            % selects new constraints
-            [~, ~, RstarModel, entry, no_coefs, H1] = ACSA_FIR(M_samps, y(:, 1:k-1), Ck(:, 1:k-1), p, params, bnds, A-B*K_opt, B, C, K_opt);
-                       
-        end   
-        b2 = cell2mat(RstarModel(entry.b0, :)');
-        Dc2 = cell2mat(RstarModel(entry.Dc, :)');
-        Dx2 = cell2mat(RstarModel(entry.Dx, :)');
+        k0 = round(k/ ratioTs);    % controller step
+        review_k = 10;
+        flush_time = 1000;
         
-        [L21, ~] = chol(H1,'lower');
-        Linv1 = inv(L21);
-        no_coefs = params.n;
-        % X = xhat(:, k0);
-        chat = Ck(k-no_coefs:k-1)';
-        b = b2 + Dx2*chat;
+        % uCheck = u(ratioTs*(k0-review_k) : ratioTs :  ratioTs*k0-ratioTs);
+        if k > adaptTime + flush_len
+            CorrXadapt = xcorr(y(1, k-flush_len:k-1), u(k-flush_len:k-1));
+            CorrPhiadapt = xcorr( xcorr(y(2, k-flush_len:k-1), u(k-flush_len:k-1)));
+            
+            maxCorrAdapt = max(abs([CorrXadapt, CorrPhiadapt]));
+        else 
+            maxCorrAdapt = 0;
+        end       
+        
                 
-        ck = mpcqpsolver(Linv1, zeros(length(Linv1), 1), Dc2, b, [], zeros(0,1), false(size(b)), options);
-        if isempty(ck) || abs(ck(1)) > 10
-            c = 0;
+        if flush_state == 1 || maxCorrAdapt/maxCorrMPC >= 2
+            % allows if statement to be completed 
+            flush_state = 1;
+                        
+            maxF = 100;
+            % MPC prediction window
+            p = 20;
+            [H, f, Ac, Ax, b1, lb, ub, opt] = MPC_vars(A-B*K_opt, B, C, K_opt, R, p, main_bounds, maxF);
+            % cholesky for mpcqpsolver
+            [L2, ~] = chol(H,'lower');
+            Linv = inv(L2);
+
+            % options for mpcqpsolver:
+            options = mpcqpsolverOptions;
+
+            k0 = k/ ratioTs;
+
+            X = xhat(:, k0);
+
+            b = b1 + Ax*X;
+
+            ck = mpcqpsolver(Linv, f, Ac, b, [], zeros(0,1), false(size(b)), options);
+            % ck = quadprog(H, f, -Ac, -b, [], [], lb, ub, [], options);
+
+            if isempty(ck) || abs(ck(1)) > 10
+                c = 0;
+            else
+                c = ck(1);
+            end
+
+            if k > k_init + flush_time
+                flush_state = 0;
+            end
+
+
         else
-            c = ck(1);
+            flush_state = 0;
+            k_init = k;
+
+            if k/25 == round(k/25)
+                    % selects new constraints
+                    [~, ~, RstarModel, entry, ~, H1] = ACSA_FIR(M_samps, y(:, 1:k-1), Ck(:, 1:k-1), p, params, bnds, A-B*K_opt, B, C, K_opt);
+
+            end   
+
+                b2 = cell2mat(RstarModel(entry.b0, :)');
+                Dc2 = cell2mat(RstarModel(entry.Dc, :)');
+                Dx2 = cell2mat(RstarModel(entry.Dx, :)');
+
+        %         [H2, f, Dc2, Dx2, b2, lb, ub, op] = MPC_varsFIR(A-B*K_opt, B, C, K_opt, R, p, bnds, maxF, aveFir);
+                [L21, ~] = chol(H1,'lower');
+                Linv1 = inv(L21);
+                no_coefs = params.n;
+                % X = xhat(:, k0);
+                chat = Ck(k-no_coefs:k-1)';
+                b = b2 + Dx2*chat;
+
+                ck = mpcqpsolver(Linv1, zeros(length(Linv1), 1), Dc2, b, [], zeros(0,1), false(size(b)), options);
+                if isempty(ck) || abs(ck(1)) > 10
+                    c = 0;
+                else
+                    c = ck(1);
+                end
         end
-    end    
+        StateFlush(k) = flush_state;
+    end
+
     % Physical Model
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     M = M - 0.01*TsFast*M + 0.001*TsFast*randn(1,1);

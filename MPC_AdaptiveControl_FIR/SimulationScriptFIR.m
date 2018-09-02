@@ -5,13 +5,14 @@ bias = 0.50;
 % noise width for the uniform dist
 nWidth = 0.053;
 % Time out time
-Time_out = 30;
+Time_out = 40;
 % save in s the current random noise generator
-s = 'default';
+s = 5000;
 
-% Run Adaptive MPC FIR algorithm
-[yAdapt, uAdapt, ~, yhatAdapt, ~] = AdaptiveMPCsimFIR(bias, Time_out, nWidth, s);
-
+% Run Adaptive MPC FIR with Flush
+[yAdapt, uAdapt, ~, yhatAdapt, ~, StateFlush] = AdaptiveFIR(bias, Time_out, nWidth, s);
+% Run Adaptive MPC FIR without flush
+[yAdapt2, uAdapt2, ~, yhatAdapt2, ~] = AdaptiveMPCsimFIR(bias, Time_out, nWidth, s);
 % Run MPC FIR algorithm
 [yMPC, uMPC, t1, yhatMPC, main_bounds] = MPCsimFIR(bias, Time_out, nWidth, s);
 
